@@ -1,0 +1,28 @@
+# Credenciales y datos sensibles
+client_secrets.json
+token.pickle
+programs.json
+schedules.json
+
+# Entorno virtual
+env/
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+auth.txt
+
+# Folders
+thumbnails/
