@@ -1,12 +1,8 @@
-import os
-
-from flask import Flask, render_template, request, jsonify, flash, send_from_directory
+from flask import Flask, render_template, request, jsonify, flash
 from youtube_api import YouTubeLiveManager
 from scheduler import LiveScheduler
 from datetime import datetime
 import warnings
-from werkzeug.utils import secure_filename
-import tempfile
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -114,42 +110,14 @@ def api_update_program(program_id):
 @app.route('/api/schedule', methods=['POST'])
 def schedule_live():
     data = request.json
+    made_for_kids = data.get('made_for_kids', False)
     if 'selected_days' not in data or not data['selected_days']:
         return jsonify({'success': False, 'error': 'Selecciona al menos un día'})
     if 'program_id' not in data or not data['program_id']:
         return jsonify({'success': False, 'error': 'Selecciona un programa'})
 
-    # 🔧 GUARDAR THUMBNAIL PERMANENTEMENTE
-    thumbnail_path = None
-    if 'thumbnail_base64' in data and data['thumbnail_base64']:
-        import base64
-        import os
-
-        # Crear carpeta de thumbnails si no existe
-        thumbnails_dir = os.path.join(os.path.dirname(__file__), 'thumbnails')
-        os.makedirs(thumbnails_dir, exist_ok=True)
-
-        # Decodificar base64
-        thumbnail_data = data['thumbnail_base64']
-        if ',' in thumbnail_data:
-            thumbnail_data = thumbnail_data.split(',')[1]
-
-        # Generar nombre único
-        filename = f"thumb_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{data['title'][:20].replace(' ', '_')}.jpg"
-        thumbnail_path = os.path.join(thumbnails_dir, filename)
-        thumbnail_url = f"/thumbnails/{filename}"  # 🔧 URL para el frontend
-
-        try:
-            with open(thumbnail_path, 'wb') as f:
-                f.write(base64.b64decode(thumbnail_data))
-            print(f"🖼️ Thumbnail guardado en: {thumbnail_path}")
-        except Exception as e:
-            print(f"⚠️ Error guardando thumbnail: {e}")
-
     base_job_id = f"live_{datetime.now().timestamp()}"
     scheduled_days = []
-    create_before_minutes = int(data.get('create_before_minutes', 5))
-    post_stream_action = data.get('post_stream_action', 'none')
 
     for day_key in data['selected_days']:
         if day_key not in DAYS:
@@ -166,11 +134,7 @@ def schedule_live():
             privacy_status=data.get('privacy', 'unlisted'),
             is_start=True,
             program_id=data['program_id'],
-            made_for_kids=data.get('made_for_kids', False),
-            create_before_minutes=create_before_minutes,
-            thumbnail_path=thumbnail_path,  # 🔧 PASAR RUTA
-            thumbnail_url=thumbnail_url,  # 🔧 PASAR URL
-            post_stream_action=post_stream_action  # 🔧 PASAR ACCIÓN
+            made_for_kids=made_for_kids
         )
 
         scheduler.schedule_live(
@@ -182,7 +146,8 @@ def schedule_live():
             description=data.get('description', ''),
             privacy_status=data.get('privacy', 'unlisted'),
             is_start=False,
-            program_id=data['program_id']
+            program_id=data['program_id'],
+            made_for_kids=made_for_kids
         )
 
         scheduled_days.append(day_key)
@@ -244,57 +209,25 @@ def update_schedule():
 
 @app.route('/api/start-now', methods=['POST'])
 def start_live_now():
-    # Manejar upload de thumbnail si viene
-    thumbnail_path = None
-    if 'thumbnail' in request.files:
-        file = request.files['thumbnail']
-        if file.filename != '':
-            # Guardar temporalmente
-            filename = secure_filename(file.filename)
-            temp_dir = tempfile.gettempdir()
-            thumbnail_path = os.path.join(temp_dir, filename)
-            file.save(thumbnail_path)
-            print(f"📁 Thumbnail guardado temporalmente en: {thumbnail_path}")
-
-    # Si viene como base64 en JSON
-    elif request.is_json and 'thumbnail_base64' in request.json:
-        import base64
-        thumbnail_data = request.json['thumbnail_base64']
-        if ',' in thumbnail_data:
-            thumbnail_data = thumbnail_data.split(',')[1]
-
-        temp_dir = tempfile.gettempdir()
-        thumbnail_path = os.path.join(temp_dir, f'thumb_{datetime.now().timestamp()}.jpg')
-        with open(thumbnail_path, 'wb') as f:
-            f.write(base64.b64decode(thumbnail_data))
-        print(f"📁 Thumbnail decodificado en: {thumbnail_path}")
-
-    data = request.json if request.is_json else request.form.to_dict()
-
+    data = request.json
     result = youtube.create_scheduled_live(
-        title=data.get('title'),
+        title=data['title'],
         description=data.get('description', ''),
-        start_time=None,
+        start_time=None,  # No pasar start_time para inmediato
         privacy_status=data.get('privacy', 'unlisted'),
         program_id=data.get('program_id'),
         is_immediate=True,
-        made_for_kids=data.get('made_for_kids', False),
-        thumbnail_path=thumbnail_path
+        made_for_kids=data.get('made_for_kids', False)
     )
 
-    # Limpiar archivo temporal
-    if thumbnail_path and os.path.exists(thumbnail_path):
-        try:
-            os.remove(thumbnail_path)
-        except:
-            pass
-
     if result.get('success'):
+        # Configurar OBS
         youtube.set_stream_key(result['stream_key'])
         scene = youtube.get_program(data.get('program_id')) if data.get('program_id') else None
         if scene and scene.get('obs_scene'):
             youtube.change_scene(scene['obs_scene'])
 
+        # Transicionar a testing y luego a live
         try:
             youtube.service.liveBroadcasts().transition(
                 part='status',
@@ -382,12 +315,6 @@ def scheduler_status():
         'current_time': datetime.now(scheduler.timezone).strftime('%Y-%m-%d %H:%M:%S'),
         'jobs': jobs_info
     })
-
-@app.route('/thumbnails/<path:filename>')
-def serve_thumbnail(filename):
-    """Sirve las imágenes de la carpeta thumbnails"""
-    thumbnails_dir = os.path.join(os.path.dirname(__file__), 'thumbnails')
-    return send_from_directory(thumbnails_dir, filename)
 
 
 if __name__ == '__main__':

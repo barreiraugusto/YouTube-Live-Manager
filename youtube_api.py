@@ -323,10 +323,8 @@ class YouTubeLiveManager:
                 pickle.dump(credentials, token)
         return build('youtube', 'v3', credentials=credentials)
 
-    def create_scheduled_live(self, title, description, start_time, privacy_status='unlisted',
-                              program_id=None, is_immediate=False, made_for_kids=False,
-                              thumbnail_path=None):
-        """Crear una transmisión programada o inmediata con thumbnail opcional"""
+    def create_scheduled_live(self, title, description, start_time, privacy_status='unlisted', program_id=None,
+                              is_immediate=False, made_for_kids=False):
         try:
             if not program_id or program_id not in self.programs:
                 return {'success': False, 'error': 'Programa no válido'}
@@ -356,14 +354,18 @@ class YouTubeLiveManager:
                 }
             }
 
+            # Si es inmediato, no incluir scheduledStartTime
             if not is_immediate and start_time:
                 if isinstance(start_time, datetime):
                     import pytz
+                    # 1. Si no tiene zona horaria, asumimos que es local o la que sea, y la pasamos a UTC
                     if start_time.tzinfo is None:
                         start_time = pytz.UTC.localize(start_time)
                     else:
+                        # 🔧 CORRECCIÓN CLAVE: Convertir explícitamente a UTC
                         start_time = start_time.astimezone(pytz.UTC)
 
+                    # 2. Ahora sí formateamos el string con la hora UTC real
                     formatted_start_time = start_time.strftime('%Y-%m-%dT%H:%M:%S.000Z')
                 else:
                     formatted_start_time = start_time
@@ -372,6 +374,7 @@ class YouTubeLiveManager:
                 broadcast_body['contentDetails']['enableAutoStart'] = False
                 print(f"📅 Broadcast programado para: {formatted_start_time} (UTC)")
             else:
+                # Para inicio inmediato
                 broadcast_body['contentDetails']['enableAutoStart'] = True
                 print(f"⚡ Broadcast de inicio inmediato")
 
@@ -381,44 +384,6 @@ class YouTubeLiveManager:
             ).execute()
 
             print(f"✅ Broadcast creado: {broadcast['id']}")
-
-            # 🔧 SUBIR THUMBNAIL SI SE PROPORCIONÓ
-            if thumbnail_path and os.path.exists(thumbnail_path):
-                try:
-                    print(f"🖼️ Subiendo thumbnail desde: {thumbnail_path}")
-
-                    # Detectar mimetype basado en extensión
-                    ext = os.path.splitext(thumbnail_path)[1].lower()
-                    if ext == '.png':
-                        mimetype = 'image/png'
-                    elif ext in ['.jpg', '.jpeg']:
-                        mimetype = 'image/jpeg' #gsg
-                    else:
-                        mimetype = 'image/jpeg'  # Default
-
-                    print(f"   Mimetype detectado: {mimetype}")
-                    print(f"   Tamaño del archivo: {os.path.getsize(thumbnail_path)} bytes")
-
-                    self.service.thumbnails().set(
-                        videoId=broadcast['id'],
-                        media_body=MediaFileUpload(thumbnail_path, mimetype=mimetype)
-                    ).execute()
-                    print("✅ Thumbnail subido correctamente")
-                except HttpError as thumb_error:
-                    print(f"❌ Error HTTP subiendo thumbnail: {thumb_error}")
-                    print(f"   Detalles: {thumb_error.resp}")
-                    print(f"   Contenido: {thumb_error.content}")
-                    # Verificar si el canal está verificado
-                    if 'forbidden' in str(thumb_error).lower():
-                        print(
-                            "💡 SUGERENCIA: Tu canal de YouTube debe estar verificado (teléfono) para usar thumbnails personalizados")
-                        print("   Ve a: https://youtube.com/verify")
-                except Exception as thumb_error:
-                    print(f"⚠️ Error general subiendo thumbnail: {thumb_error}")
-                    import traceback
-                    traceback.print_exc()
-            elif thumbnail_path and not os.path.exists(thumbnail_path):
-                print(f"⚠️ Archivo de thumbnail no encontrado: {thumbnail_path}")
 
             # Vincular broadcast con el stream
             self.service.liveBroadcasts().bind(
@@ -443,6 +408,7 @@ class YouTubeLiveManager:
             error_msg = str(e)
             print(f"❌ Error en create_scheduled_live: {error_msg}")
             return {'success': False, 'error': error_msg}
+            formatted_start_time
 
     def update_live_metadata(self, broadcast_id, title=None, description=None):
         try:
