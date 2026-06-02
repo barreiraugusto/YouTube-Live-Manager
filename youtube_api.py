@@ -1,12 +1,16 @@
 import os
 import pickle
 import json
+import logging
 from datetime import datetime, timedelta
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from googleapiclient.errors import HttpError
+
+# Configuración de logging
+logger = logging.getLogger(__name__)
 
 # Importaciones para OBS
 try:
@@ -15,7 +19,7 @@ try:
     OBS_AVAILABLE = True
 except ImportError:
     OBS_AVAILABLE = False
-    print("⚠️ obs-websocket-py no instalado. Instalar con: pip install obs-websocket-py")
+    logger.warning("obs-websocket-py no instalado. Instalar con: pip install obs-websocket-py")
 
 SCOPES = [
     'https://www.googleapis.com/auth/youtube.force-ssl',
@@ -53,17 +57,17 @@ class YouTubeLiveManager:
             # Asegúrate de que el puerto 4455 es el correcto en tus ajustes de OBS
             self.obs_ws = obsws(self.obs_host, self.obs_port, self.obs_password)
             self.obs_ws.connect()
-            print("✅ Conectado a OBS Studio (API v5)")
+            logger.info("✅ Conectado a OBS Studio (API v5)")
             return True
         except Exception as e:
-            print(f"⚠️ No se pudo conectar a OBS: {e}")
+            logger.warning(f"No se pudo conectar a OBS: {e}")
             return False
 
     def disconnect_obs(self):
         if self.obs_ws:
             try:
                 self.obs_ws.disconnect()
-                print("🔌 Desconectado de OBS")
+                logger.info("🔌 Desconectado de OBS")
             except:
                 pass
             self.obs_ws = None
@@ -82,10 +86,10 @@ class YouTubeLiveManager:
                     "key": stream_key
                 }
             ))
-            print(f"✅ Stream key configurada en OBS")
+            logger.info("✅ Stream key configurada en OBS")
             return True
         except Exception as e:
-            print(f"❌ Error configurando stream key: {e}")
+            logger.error(f"Error configurando stream key: {e}")
             return False
 
     def _is_obs_streaming(self, status):
@@ -113,24 +117,24 @@ class YouTubeLiveManager:
         try:
             status = self.obs_ws.call(obs_requests.GetStreamStatus())
             if self._is_obs_streaming(status):
-                print("ℹ️ OBS ya estaba transmitiendo")
+                logger.info("ℹ️ OBS ya estaba transmitiendo")
                 return True
 
             self.obs_ws.call(obs_requests.StartStream())
-            print("▶️ OBS: Orden de inicio enviada")
+            logger.info("▶️ OBS: Orden de inicio enviada")
 
             import time
             time.sleep(3)  # Esperar a que OBS inicie el encoder
 
             status = self.obs_ws.call(obs_requests.GetStreamStatus())
             if self._is_obs_streaming(status):
-                print("✅ OBS está transmitiendo correctamente")
+                logger.info("✅ OBS está transmitiendo correctamente")
                 return True
             else:
-                print("⚠️ OBS recibió la orden pero el estado no es activo")
+                logger.warning("⚠️ OBS recibió la orden pero el estado no es activo")
                 return False
         except Exception as e:
-            print(f"❌ Error iniciando OBS: {e}")
+            logger.error(f"Error iniciando OBS: {e}")
             return False
 
     def stop_obs_stream(self):
@@ -143,12 +147,12 @@ class YouTubeLiveManager:
             status = self.obs_ws.call(obs_requests.GetStreamStatus())
             if self._is_obs_streaming(status):
                 self.obs_ws.call(obs_requests.StopStream())
-                print("⏹️ OBS: Streaming detenido")
+                logger.info("⏹️ OBS: Streaming detenido")
             else:
-                print("ℹ️ OBS no estaba transmitiendo")
+                logger.info("ℹ️ OBS no estaba transmitiendo")
             return True
         except Exception as e:
-            print(f"❌ Error deteniendo OBS: {e}")
+            logger.error(f"Error deteniendo OBS: {e}")
             return False
 
     def change_scene(self, scene_name):
@@ -160,10 +164,10 @@ class YouTubeLiveManager:
         try:
             # En v5 el parámetro es sceneName
             self.obs_ws.call(obs_requests.SetCurrentProgramScene(sceneName=scene_name))
-            print(f"🎬 Escena cambiada a: {scene_name}")
+            logger.info(f"Escena cambiada a: {scene_name}")
             return True
         except Exception as e:
-            print(f"❌ Error cambiando escena: {e}")
+            logger.error(f"Error cambiando escena: {e}")
             return False
 
     # ==================== GESTIÓN DE PROGRAMAS ====================
@@ -175,7 +179,7 @@ class YouTubeLiveManager:
                 with open(self.programs_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except Exception as e:
-                print(f"⚠️ Error cargando programas: {e}")
+                logger.warning(f"Error cargando programas: {e}")
         return {}
 
     def _save_programs(self):
@@ -183,10 +187,10 @@ class YouTubeLiveManager:
         try:
             with open(self.programs_file, 'w', encoding='utf-8') as f:
                 json.dump(self.programs, f, indent=2, ensure_ascii=False)
-            print("💾 Programas guardados")
+            logger.info("Programas guardados")
             return True
         except Exception as e:
-            print(f"❌ Error guardando programas: {e}")
+            logger.error(f"Error guardando programas: {e}")
             return False
 
     def create_program(self, program_id, name, obs_scene=None):
@@ -206,7 +210,7 @@ class YouTubeLiveManager:
                 }
             }
 
-            print(f"📡 Creando stream para: {name}")
+            logger.info(f"Creando stream para: {name}")
             stream = self.service.liveStreams().insert(
                 part='snippet,cdn',
                 body=stream_body
@@ -225,8 +229,7 @@ class YouTubeLiveManager:
             self.programs[program_id] = program_data
             self._save_programs()
 
-            print(f"✅ Programa '{name}' creado")
-            print(f"🔑 Stream Key: {program_data['stream_key'][:15]}...")
+            logger.info(f"Programa creado: {name}")
 
             return {'success': True, 'program': program_data}
 
@@ -256,7 +259,7 @@ class YouTubeLiveManager:
             # Eliminar el stream de YouTube
             if stream_id:
                 self.service.liveStreams().delete(id=stream_id).execute()
-                print(f"🗑️ Stream eliminado: {stream_id}")
+                logger.info(f"Stream eliminado: {stream_id}")
 
             del self.programs[program_id]
             self._save_programs()
@@ -305,14 +308,14 @@ class YouTubeLiveManager:
             try:
                 with open(token_file, 'rb') as token:
                     credentials = pickle.load(token)
-                print("✅ Credenciales cargadas")
+                logger.info("Credenciales cargadas")
             except Exception as e:
-                print(f"⚠️ Error: {e}")
+                logger.warning(f"Error: {e}")
         if not credentials or not credentials.valid:
             if credentials and credentials.expired and credentials.refresh_token:
                 try:
                     credentials.refresh(Request())
-                    print("✅ Credenciales refrescadas")
+                    logger.info("Credenciales refrescadas")
                 except Exception as e:
                     credentials = None
             if not credentials or not credentials.valid:
@@ -372,18 +375,18 @@ class YouTubeLiveManager:
 
                 broadcast_body['snippet']['scheduledStartTime'] = formatted_start_time
                 broadcast_body['contentDetails']['enableAutoStart'] = False
-                print(f"📅 Broadcast programado para: {formatted_start_time} (UTC)")
+                logger.info(f"Broadcast programado: {formatted_start_time}")
             else:
                 # Para inicio inmediato
                 broadcast_body['contentDetails']['enableAutoStart'] = True
-                print(f"⚡ Broadcast de inicio inmediato")
+                logger.info("Broadcast de inicio inmediato")
 
             broadcast = self.service.liveBroadcasts().insert(
                 part='snippet,status,contentDetails',
                 body=broadcast_body
             ).execute()
 
-            print(f"✅ Broadcast creado: {broadcast['id']}")
+            logger.info(f"✅ Broadcast creado: {broadcast['id']}")
 
             # Vincular broadcast con el stream
             self.service.liveBroadcasts().bind(
@@ -392,7 +395,7 @@ class YouTubeLiveManager:
                 streamId=stream_id
             ).execute()
 
-            print(f"✅ Broadcast vinculado al stream: {stream_id}")
+            logger.info(f"Broadcast vinculado al stream: {stream_id}")
 
             self._clear_cache('live_broadcasts')
 
@@ -406,9 +409,8 @@ class YouTubeLiveManager:
             }
         except HttpError as e:
             error_msg = str(e)
-            print(f"❌ Error en create_scheduled_live: {error_msg}")
+            logger.error(f"Error en create_scheduled_live: {error_msg}")
             return {'success': False, 'error': error_msg}
-            formatted_start_time
 
     def update_live_metadata(self, broadcast_id, title=None, description=None):
         try:
@@ -424,7 +426,7 @@ class YouTubeLiveManager:
             self._clear_cache('live_broadcasts')
             return updated
         except HttpError as e:
-            print(f"❌ Error: {e}")
+            logger.error(f"Error: {e}")
             raise
 
     def delete_broadcast(self, broadcast_id):
@@ -433,7 +435,7 @@ class YouTubeLiveManager:
             self._clear_cache('live_broadcasts')
             return True
         except HttpError as e:
-            print(f"Error: {e}")
+            logger.error(f"Error: {e}")
             return False
 
     def update_privacy_status(self, video_id, privacy_status):
@@ -447,7 +449,7 @@ class YouTubeLiveManager:
                 return True
             return False
         except HttpError as e:
-            print(f"Error: {e}")
+            logger.error(f"Error: {e}")
             return False
 
     def list_playlists(self, use_cache=True):
@@ -463,7 +465,7 @@ class YouTubeLiveManager:
                 self._set_cache(cache_key, result)
             return result
         except HttpError as e:
-            print(f"Error: {e}")
+            logger.error(f"Error: {e}")
             return []
 
     def get_my_live_broadcasts(self, use_cache=True):
@@ -483,5 +485,5 @@ class YouTubeLiveManager:
                 cached = self._get_from_cache(cache_key)
                 if cached:
                     return cached
-            print(f"❌ Error: {e}")
+            logger.error(f"Error: {e}")
             raise
