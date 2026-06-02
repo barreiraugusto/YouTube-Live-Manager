@@ -207,34 +207,62 @@ class YouTubeLiveManager:
             }
 
             print(f"📡 Creando stream para: {name}")
+            print(f"   Body de la petición: {json.dumps(stream_body, indent=2)}")
+            
             stream = self.service.liveStreams().insert(
                 part='snippet,cdn',
                 body=stream_body
             ).execute()
+            
+            print(f"   Respuesta de YouTube API: {json.dumps(stream, indent=2)}")
+
+            # Validar que la respuesta tenga los datos necesarios
+            if 'cdn' not in stream or 'ingestionInfo' not in stream.get('cdn', {}):
+                print(f"❌ Error: La respuesta de YouTube no contiene ingestionInfo")
+                print(f"   Respuesta completa: {stream}")
+                return {'success': False, 'error': 'YouTube no devolvió la información del stream'}
+
+            stream_key = stream['cdn']['ingestionInfo'].get('streamName')
+            stream_url = stream['cdn']['ingestionInfo'].get('ingestionAddress')
+            
+            if not stream_key:
+                print(f"❌ Error: stream_key es None o vacío")
+                print(f"   ingestionInfo completo: {stream['cdn']['ingestionInfo']}")
+                return {'success': False, 'error': 'No se pudo obtener la stream key'}
 
             program_data = {
                 'id': program_id,
                 'name': name,
                 'stream_id': stream['id'],
-                'stream_key': stream['cdn']['ingestionInfo']['streamName'],
-                'stream_url': stream['cdn']['ingestionInfo']['ingestionAddress'],
+                'stream_key': stream_key,
+                'stream_url': stream_url,
                 'obs_scene': obs_scene or name,
                 'created_at': datetime.now().isoformat()
             }
 
             self.programs[program_id] = program_data
-            self._save_programs()
+            save_result = self._save_programs()
+            
+            if not save_result:
+                print(f"⚠️ Advertencia: No se pudieron guardar los programas en JSON")
 
-            print(f"✅ Programa '{name}' creado")
-            print(f"🔑 Stream Key: {program_data['stream_key'][:15]}...")
+            print(f"✅ Programa '{name}' creado exitosamente")
+            print(f"   Stream ID: {program_data['stream_id']}")
+            print(f"   Stream Key: {program_data['stream_key'][:15]}...")
+            print(f"   Stream URL: {program_data['stream_url']}")
+            print(f"   Guardado en programs.json: {save_result}")
 
             return {'success': True, 'program': program_data}
 
         except HttpError as e:
             error_msg = str(e)
+            print(f"❌ HttpError al crear stream: {error_msg}")
             if 'resolution' in error_msg:
                 return {'success': False, 'error': 'Error de resolución. Intenta crear el stream manualmente.'}
             return {'success': False, 'error': error_msg}
+        except Exception as e:
+            print(f"❌ Error inesperado al crear programa: {type(e).__name__}: {e}")
+            return {'success': False, 'error': f'{type(e).__name__}: {e}'}
 
     def get_program(self, program_id):
         """Obtener un programa por su ID"""

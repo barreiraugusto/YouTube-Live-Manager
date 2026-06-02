@@ -90,7 +90,9 @@ def api_create_program():
     if not program_id or not name:
         return jsonify({'success': False, 'error': 'ID y nombre son requeridos'})
 
+    print(f"📝 Solicitud para crear programa: id={program_id}, name={name}, obs_scene={obs_scene}")
     result = youtube.create_program(program_id, name, obs_scene)
+    print(f"📦 Resultado de crear programa: {result}")
     return jsonify(result)
 
 

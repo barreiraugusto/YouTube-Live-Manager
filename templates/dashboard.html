@@ -1236,12 +1236,15 @@
             body: JSON.stringify({id, name, obs_scene: scene || name})
         });
         const result = await response.json();
+        console.log('Resultado de crear programa:', result);
         if (result.success) {
             showToast(`Programa "${name}" creado`, 'success');
+            console.log('Programa creado exitosamente:', result.program);
             closeModal('programModal');
             setTimeout(() => location.reload(), 1000);
         } else {
             showToast('Error: ' + result.error, 'error');
+            console.error('Error al crear programa:', result.error);
         }
     });
 
