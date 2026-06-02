@@ -133,12 +133,8 @@
         }
 
         @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.6;
-            }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
         }
 
         /* Schedule Form Tabs */
@@ -180,12 +176,8 @@
         }
 
         @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         /* Grids */
@@ -316,7 +308,7 @@
             max-width: 100%;
             max-height: 200px;
             border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .days-container {
@@ -376,20 +368,17 @@
         /* Programs Grid */
         .programs-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 15px;
         }
 
         .program-card {
             background: white;
             border-radius: 10px;
-            padding: 0;
+            padding: 20px;
             border: 1px solid var(--gray-300);
             transition: all 0.2s;
             position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: row;
         }
 
         .program-card:hover {
@@ -408,59 +397,24 @@
             border-radius: 10px 0 0 10px;
         }
 
-        .program-thumbnail {
-            flex: 0 0 160px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 15px;
-            position: relative;
-        }
-
-        .program-thumbnail-placeholder {
-            font-size: 3rem;
-            color: white;
-            opacity: 0.8;
-        }
-
-        .program-content {
-            flex: 1;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
         .program-header {
             display: flex;
             justify-content: space-between;
             align-items: start;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         .program-title {
             font-size: 1.05rem;
             font-weight: 600;
             color: var(--gray-800);
-            margin: 0;
-        }
-
-        .program-id-badge {
-            background: var(--info);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 500;
-            white-space: nowrap;
         }
 
         .program-info {
             display: flex;
             flex-direction: column;
             gap: 8px;
-            margin-bottom: 10px;
+            margin-top: 10px;
         }
 
         .program-info-item {
@@ -477,84 +431,6 @@
             border-radius: 4px;
             font-family: 'Courier New', monospace;
             font-size: 0.8rem;
-            word-break: break-all;
-        }
-
-        .program-actions-container {
-            position: relative;
-            align-self: flex-end;
-        }
-
-        .program-menu-btn {
-            background: var(--gray-200);
-            color: var(--gray-700);
-            border: 1px solid var(--gray-300);
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .program-menu-btn:hover {
-            background: var(--gray-300);
-        }
-
-        .program-dropdown {
-            display: none;
-            position: absolute;
-            bottom: 100%;
-            right: 0;
-            background: white;
-            border: 1px solid var(--gray-300);
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            min-width: 180px;
-            z-index: 100;
-            margin-bottom: 5px;
-            overflow: hidden;
-        }
-
-        .program-dropdown.show {
-            display: block;
-            animation: fadeIn 0.2s ease;
-        }
-
-        .program-dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 15px;
-            cursor: pointer;
-            transition: background 0.2s;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            font-size: 0.85rem;
-            color: var(--gray-700);
-        }
-
-        .program-dropdown-item:hover {
-            background: var(--gray-100);
-        }
-
-        .program-dropdown-item.danger {
-            color: var(--danger);
-        }
-
-        .program-dropdown-item.danger:hover {
-            background: #fff5f5;
-        }
-
-        .program-dropdown-divider {
-            height: 1px;
-            background: var(--gray-300);
-            margin: 5px 0;
         }
 
         /* Broadcasts Grid */
@@ -649,58 +525,33 @@
             transform: translateY(0);
         }
 
-        .btn-danger {
-            background: var(--danger);
-        }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: var(--danger-dark); }
 
-        .btn-danger:hover {
-            background: var(--danger-dark);
-        }
-
-        .btn-success {
-            background: var(--success);
-        }
-
-        .btn-success:hover {
-            background: var(--success-dark);
-        }
+        .btn-success { background: var(--success); }
+        .btn-success:hover { background: var(--success-dark); }
 
         .btn-warning {
             background: var(--warning);
             color: var(--gray-800);
         }
+        .btn-warning:hover { background: #e67e22; color: white; }
 
-        .btn-warning:hover {
-            background: #e67e22;
-            color: white;
-        }
-
-        .btn-refresh {
-            background: var(--secondary);
-        }
-
-        .btn-refresh:hover {
-            background: var(--gray-700);
-        }
+        .btn-refresh { background: var(--secondary); }
+        .btn-refresh:hover { background: var(--gray-700); }
 
         .btn-outline {
             background: white;
             color: var(--primary);
             border: 1px solid var(--primary);
         }
-
         .btn-outline:hover {
             background: var(--primary);
             color: white;
         }
 
-        .btn-edit {
-            background: var(--info);
-        }
-
-        .btn-edit:hover {
-            background: #2980b9;
-        }
+        .btn-edit { background: var(--info); }
+        .btn-edit:hover { background: #2980b9; }
 
         .btn-sm {
             padding: 6px 12px;
@@ -760,20 +611,9 @@
             font-weight: 600;
         }
 
-        .badge-public {
-            background: var(--success);
-            color: white;
-        }
-
-        .badge-unlisted {
-            background: var(--warning);
-            color: var(--gray-800);
-        }
-
-        .badge-private {
-            background: var(--gray-500);
-            color: white;
-        }
+        .badge-public { background: var(--success); color: white; }
+        .badge-unlisted { background: var(--warning); color: var(--gray-800); }
+        .badge-private { background: var(--gray-500); color: white; }
 
         .button-group {
             display: flex;
@@ -903,17 +743,9 @@
             }
         }
 
-        .toast.success {
-            border-left: 4px solid var(--success);
-        }
-
-        .toast.error {
-            border-left: 4px solid var(--danger);
-        }
-
-        .toast.warning {
-            border-left: 4px solid var(--warning);
-        }
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.warning { border-left: 4px solid var(--warning); }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -935,258 +767,6 @@
 
             .tab {
                 white-space: nowrap;
-            }
-        }
-
-        /* Estilos específicos para Schedule Cards Horizontales */
-        .schedule-card {
-            background: var(--card-bg);
-            border-radius: 12px;
-            padding: 0; /* Padding manejado internamente */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s, box-shadow 0.2s;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .schedule-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
-        }
-
-        .card-content-wrapper {
-            display: flex;
-            flex-direction: row;
-            height: 100%;
-        }
-
-        /* Columna Izquierda: Miniatura */
-        .card-thumbnail-col {
-            width: 140px;
-            min-width: 140px;
-            background: #000;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-
-        .card-thumb-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-
-        .card-thumb-placeholder {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2rem;
-            color: rgba(255, 255, 255, 0.3);
-            background: linear-gradient(135deg, #2c3e50, #000);
-        }
-
-        /* Columna Derecha: Información */
-        .card-info-col {
-            flex: 1;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            position: relative;
-        }
-
-        .card-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 10px;
-        }
-
-        .schedule-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-color);
-            margin: 0;
-            line-height: 1.3;
-        }
-
-        /* Badges y Chips */
-        .schedule-badges {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        .schedule-badge {
-            font-size: 0.75rem;
-            padding: 2px 8px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--text-color);
-            font-weight: 600;
-        }
-
-        .days-container {
-            display: flex;
-            gap: 4px;
-            flex-wrap: wrap;
-        }
-
-        .day-chip {
-            font-size: 0.7rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            background: var(--primary);
-            color: white;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-
-        /* Grid de Metadatos (Horarios) */
-        .schedule-meta-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 6px;
-            margin-top: auto; /* Empuja al fondo si hay espacio */
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
-
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .meta-icon {
-            font-size: 0.9rem;
-        }
-
-        .next-run-full {
-            grid-column: 1 / -1;
-            margin-top: 4px;
-            padding-top: 4px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--accent);
-        }
-
-        /* Dropdown Styles (Reutilizados/Adaptados) */
-        .dropdown-container {
-            position: relative;
-        }
-
-        .btn-dropdown-toggle {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: var(--text-color);
-            padding: 4px 10px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            transition: background 0.2s;
-        }
-
-        .btn-dropdown-toggle:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-
-        .btn-dropdown-toggle .arrow {
-            font-size: 0.6rem;
-            transition: transform 0.2s;
-        }
-
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: 100%;
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            z-index: 100;
-            min-width: 160px;
-            overflow: hidden;
-            margin-top: 4px;
-            animation: slideDown 0.2s ease-out;
-        }
-
-        .dropdown-menu.show {
-            display: block;
-        }
-
-        .dropdown-item {
-            display: block;
-            width: 100%;
-            padding: 8px 12px;
-            background: none;
-            border: none;
-            text-align: left;
-            color: var(--text-color);
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: background 0.2s;
-        }
-
-        .dropdown-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .dropdown-item.danger {
-            color: #ff4d4d;
-        }
-
-        .dropdown-item.danger:hover {
-            background: rgba(255, 77, 77, 0.1);
-        }
-
-        .dropdown-divider {
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-            margin: 4px 0;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-5px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Responsive: Volver a vertical en móviles */
-        @media (max-width: 600px) {
-            .card-content-wrapper {
-                flex-direction: column;
-            }
-
-            .card-thumbnail-col {
-                width: 100%;
-                height: 120px;
-                min-height: 120px;
-            }
-
-            .card-header-row {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .dropdown-container {
-                align-self: flex-end;
-                margin-top: -30px; /* Subir un poco el botón */
-                margin-right: 10px;
             }
         }
     </style>
@@ -1252,11 +832,9 @@
         </div>
         <form id="scheduleForm">
             <div class="tabs">
-                <button type="button" class="tab active" onclick="switchTab(event, 'tab-basic')">📝 Información Básica
-                </button>
+                <button type="button" class="tab active" onclick="switchTab(event, 'tab-basic')">📝 Información Básica</button>
                 <button type="button" class="tab" onclick="switchTab(event, 'tab-schedule')">⏰ Horario</button>
-                <button type="button" class="tab" onclick="switchTab(event, 'tab-advanced')">⚙️ Configuración Avanzada
-                </button>
+                <button type="button" class="tab" onclick="switchTab(event, 'tab-advanced')">⚙️ Configuración Avanzada</button>
             </div>
 
             <div id="tab-basic" class="tab-content active">
@@ -1377,79 +955,38 @@
             {% if scheduled and scheduled|length > 0 %}
             {% for group in scheduled %}
             <div class="schedule-card" data-group-key="{{ group.id }}">
-                <!-- Contenedor Flex para layout horizontal -->
-                <div class="card-content-wrapper">
-
-                    <!-- Columna Izquierda: Miniatura / Placeholder -->
-                    <div class="card-thumbnail-col">
-                        {% if group.thumbnail_url %}
-                        <img src="{{ group.thumbnail_url }}" alt="Miniatura" class="card-thumb-img">
-                        {% else %}
-                        <div class="card-thumb-placeholder">
-                            <span>📅</span>
-                        </div>
-                        {% endif %}
+                <div class="schedule-header">
+                    <div class="schedule-title">{{ group.title }}</div>
+                    <div class="schedule-badges">
+                        <span class="schedule-badge" style="background: var(--info);">{{ group.program_name }}</span>
+                        <span class="schedule-badge">{{ group.day_count }} día{% if group.day_count != 1 %}s{% endif %}</span>
                     </div>
-
-                    <!-- Columna Derecha: Información -->
-                    <div class="card-info-col">
-                        <div class="card-header-row">
-                            <div class="schedule-title">{{ group.title }}</div>
-                            <!-- Botón de Menú Desplegable -->
-                            <div class="dropdown-container">
-                                <button class="btn-dropdown-toggle"
-                                        onclick="toggleScheduleDropdown(event, '{{ group.id }}')">
-                                    ⚙️ Acciones <span class="arrow">▼</span>
-                                </button>
-                                <div id="dropdown-{{ group.id }}" class="dropdown-menu">
-                                    <button class="dropdown-item"
-                                            onclick='editSchedule("{{ group.id }}", "{{ group.title|replace('
-                                    "', '\\"')|replace("'", "\\'") }}", "{{ group.description|replace('"',
-                                    '\\"')|replace("'", "\\'") }}", "{{ group.privacy }}", "{{ group.start_time }}", "{{
-                                    group.end_time }}", {{ group.days|tojson }})'>
-                                    ✏️ Editar
-                                    </button>
-                                    <button class="dropdown-item" onclick='startScheduledNow("{{ group.title|replace('
-                                    "', '\\"')|replace("'", "\\'") }}", "{{ group.description|replace('"',
-                                    '\\"')|replace("'", "\\'") }}", "{{ group.privacy }}")'>
-                                    ▶️ Iniciar ahora
-                                    </button>
-                                    <div class="dropdown-divider"></div>
-                                    <button class="dropdown-item danger"
-                                            onclick="deleteScheduleGroup('{{ group.id }}')">
-                                        🗑️ Eliminar
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="schedule-badges">
-                            <span class="schedule-badge"
-                                  style="background: var(--info);">{{ group.program_name }}</span>
-                            <span class="schedule-badge">{{ group.day_count }} día{% if group.day_count != 1 %}s{% endif %}</span>
-                        </div>
-
-                        <div class="days-container">
-                            {% for day in group.days %}
-                            <span class="day-chip">{{ day }}</span>
-                            {% endfor %}
-                        </div>
-
-                        <div class="schedule-meta-grid">
-                            <div class="meta-item">
-                                <span class="meta-icon">🟢</span>
-                                <span class="time-start">{{ group.start_time }}</span>
-                            </div>
-                            <div class="meta-item">
-                                <span class="meta-icon">🔴</span>
-                                <span class="time-end">{{ group.end_time }}</span>
-                            </div>
-                            <div class="meta-item next-run-full">
-                                <span class="meta-icon">📅</span>
-                                <span>Próxima: <strong>{{ group.next_run if group.next_run else 'Por definir' }}</strong></span>
-                            </div>
-                        </div>
-                    </div>
+                </div>
+                {% if group.thumbnail_url %}
+                <div class="schedule-thumbnail">
+                    <img src="{{ group.thumbnail_url }}" alt="Miniatura">
+                </div>
+                {% endif %}
+                <div class="days-container">
+                    {% for day in group.days %}
+                    <span class="day-chip">{{ day }}</span>
+                    {% endfor %}
+                </div>
+                <div class="schedule-times">
+                    <div>🟢 <span class="time-start">Inicio: {{ group.start_time }}</span></div>
+                    <div>🔴 <span class="time-end">Fin: {{ group.end_time }}</span></div>
+                </div>
+                <div class="next-run">📅 Próxima: {{ group.next_run if group.next_run else 'Por definir' }}</div>
+                <div class="schedule-actions">
+                    <button class="btn-edit btn-sm" onclick='editSchedule("{{ group.id }}", "{{ group.title|replace('"', '\\"')|replace("'", "\\'") }}", "{{ group.description|replace('"', '\\"')|replace("'", "\\'") }}", "{{ group.privacy }}", "{{ group.start_time }}", "{{ group.end_time }}", {{ group.days|tojson }})'>
+                        ✏️ Editar
+                    </button>
+                    <button class="btn-danger btn-sm" onclick="deleteScheduleGroup('{{ group.id }}')">
+                        🗑️ Eliminar
+                    </button>
+                    <button class="btn-success btn-sm" onclick='startScheduledNow("{{ group.title|replace('"', '\\"')|replace("'", "\\'") }}", "{{ group.description|replace('"', '\\"')|replace("'", "\\'") }}", "{{ group.privacy }}")'>
+                        ▶️ Iniciar ahora
+                    </button>
                 </div>
             </div>
             {% endfor %}
@@ -1470,45 +1007,29 @@
             {% if programs %}
             {% for program in programs %}
             <div class="program-card">
-                <div class="program-thumbnail">
-                    <span class="program-thumbnail-placeholder">📺</span>
+                <div class="program-header">
+                    <div class="program-title">{{ program.name }}</div>
+                    <span class="schedule-badge" style="background: var(--info);">ID: {{ program.id }}</span>
                 </div>
-                <div class="program-content">
-                    <div class="program-header">
-                        <h3 class="program-title">{{ program.name }}</h3>
-                        <span class="program-id-badge">ID: {{ program.id }}</span>
+                <div class="program-info">
+                    <div class="program-info-item">
+                        <span>🔑</span>
+                        <span><strong>Stream Key:</strong></span>
+                        <code class="stream-key-code">{{ program.stream_key[:20] }}...</code>
                     </div>
-                    <div class="program-info">
-                        <div class="program-info-item">
-                            <span>🔑</span>
-                            <span><strong>Stream Key:</strong></span>
-                            <code class="stream-key-code">{{ program.stream_key[:20] }}...</code>
-                        </div>
-                        <div class="program-info-item">
-                            <span>🎬</span>
-                            <span><strong>Escena OBS:</strong> {{ program.obs_scene }}</span>
-                        </div>
+                    <div class="program-info-item">
+                        <span>🎬</span>
+                        <span><strong>Escena OBS:</strong> {{ program.obs_scene }}</span>
                     </div>
-                    <div class="program-actions-container">
-                        <button class="program-menu-btn" onclick="toggleProgramDropdown('{{ program.id }}')">
-                            ⚙️ Acciones ▼
-                        </button>
-                        <div class="program-dropdown" id="dropdown-{{ program.id }}">
-                            <button class="program-dropdown-item" onclick="copyStreamKey('{{ program.stream_key }}')">
-                                📋 Copiar Stream Key
-                            </button>
-                            <div class="program-dropdown-divider"></div>
-                            <button class="program-dropdown-item danger" onclick="deleteProgram('{{ program.id }}')">
-                                🗑️ Eliminar Programa
-                            </button>
-                        </div>
-                    </div>
+                </div>
+                <div class="button-group" style="margin-top: 15px;">
+                    <button class="btn-outline btn-sm" onclick="copyStreamKey('{{ program.stream_key }}')">📋 Copiar Key</button>
+                    <button class="btn-danger btn-sm" onclick="deleteProgram('{{ program.id }}')">🗑️ Eliminar</button>
                 </div>
             </div>
             {% endfor %}
             {% else %}
-            <div class="empty-state" style="grid-column: 1 / -1;">📭 No hay programas creados. Crea tu primer programa.
-            </div>
+            <div class="empty-state" style="grid-column: 1 / -1;">📭 No hay programas creados. Crea tu primer programa.</div>
             {% endif %}
         </div>
     </div>
@@ -1525,17 +1046,12 @@
                 <div class="broadcast-title">{{ broadcast.snippet.title }}</div>
                 <div class="broadcast-meta">
                     🆔 ID: {{ broadcast.id[:8] }}...<br>
-                    📅 Inicio: {{ broadcast.snippet.scheduledStartTime if broadcast.snippet.scheduledStartTime else 'No
-                    programado' }}<br>
+                    📅 Inicio: {{ broadcast.snippet.scheduledStartTime if broadcast.snippet.scheduledStartTime else 'No programado' }}<br>
                     🔒 <span class="badge badge-{{ broadcast.status.privacyStatus }}">{{ broadcast.status.privacyStatus }}</span>
                 </div>
                 <div class="button-group">
-                    <button class="btn-sm"
-                            onclick="editBroadcast('{{ broadcast.id }}', `{{ broadcast.snippet.title|escape }}`)">✏️
-                        Editar
-                    </button>
-                    <button class="btn-danger btn-sm" onclick="deleteBroadcast('{{ broadcast.id }}')">🗑️ Eliminar
-                    </button>
+                    <button class="btn-sm" onclick="editBroadcast('{{ broadcast.id }}', `{{ broadcast.snippet.title|escape }}`)">✏️ Editar</button>
+                    <button class="btn-danger btn-sm" onclick="deleteBroadcast('{{ broadcast.id }}')">🗑️ Eliminar</button>
                 </div>
             </div>
             {% endfor %}
@@ -2018,39 +1534,7 @@
     function copyStreamKey(streamKey) {
         navigator.clipboard.writeText(streamKey);
         showToast('Stream Key copiada al portapapeles', 'success');
-        closeAllProgramDropdowns();
     }
-
-    // Toggle program dropdown menu
-    function toggleProgramDropdown(programId) {
-        event.stopPropagation();
-        const dropdown = document.getElementById(`dropdown-${programId}`);
-        const allDropdowns = document.querySelectorAll('.program-dropdown');
-
-        // Close all other dropdowns
-        allDropdowns.forEach(d => {
-            if (d.id !== `dropdown-${programId}`) {
-                d.classList.remove('show');
-            }
-        });
-
-        // Toggle current dropdown
-        dropdown.classList.toggle('show');
-    }
-
-    // Close all program dropdowns
-    function closeAllProgramDropdowns() {
-        document.querySelectorAll('.program-dropdown').forEach(d => {
-            d.classList.remove('show');
-        });
-    }
-
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', function (event) {
-        if (!event.target.closest('.program-actions-container')) {
-            closeAllProgramDropdowns();
-        }
-    });
 
     // Close modals on outside click
     window.onclick = function (event) {
@@ -2058,31 +1542,6 @@
             event.target.classList.remove('show');
         }
     };
-
-    function toggleScheduleDropdown(event, id) {
-        event.stopPropagation(); // Evitar que el clic cierre inmediatamente
-        const dropdown = document.getElementById(`dropdown-${id}`);
-        const allDropdowns = document.querySelectorAll('.dropdown-menu');
-
-        // Cerrar otros menús abiertos
-        allDropdowns.forEach(d => {
-            if (d.id !== `dropdown-${id}`) {
-                d.classList.remove('show');
-            }
-        });
-
-
-        dropdown.classList.toggle('show');
-    }
-
-    // Cerrar menús al hacer clic fuera
-    document.addEventListener('click', function (event) {
-        if (!event.target.closest('.dropdown-container')) {
-            document.querySelectorAll('.dropdown-menu').forEach(d => {
-                d.classList.remove('show');
-            });
-        }
-    });
 </script>
 </body>
 </html>
