@@ -767,6 +767,12 @@
             </div>
 
             <div class="form-group">
+                <label>🖼️ URL de Miniatura (opcional)</label>
+                <input type="url" id="thumbnail_url" placeholder="https://ejemplo.com/mi-miniatura.jpg">
+                <small style="color: var(--gray-600);">URL de imagen para la miniatura del live (recomendado 1280x720px)</small>
+            </div>
+
+            <div class="form-group">
                 <label>👶 ¿Es contenido para niños?</label>
                 <select id="made_for_kids">
                     <option value="false" selected>No, no es contenido para niños</option>
@@ -782,6 +788,18 @@
                     <option value="unlisted" selected>No listado</option>
                     <option value="private">Privado</option>
                 </select>
+                <small style="color: var(--gray-600);">Los videos privados solo serán visibles para ti</small>
+            </div>
+
+            <div class="form-group">
+                <label>🗑️ Eliminación automática</label>
+                <select id="delete_after">
+                    <option value="never" selected>Nunca eliminar automáticamente</option>
+                    <option value="1day">Eliminar después de 1 día</option>
+                    <option value="7days">Eliminar después de 7 días</option>
+                    <option value="30days">Eliminar después de 30 días</option>
+                </select>
+                <small style="color: var(--gray-600);">El video se eliminará automáticamente después de la transmisión</small>
             </div>
 
             <div style="display: flex; gap: 10px;">
@@ -825,7 +843,7 @@
                         </button>
                         <div id="schedule-actions-{{ loop.index }}" class="dropdown-menu">
                             <button class="btn-edit" onclick='editSchedule("{{ group.id }}", "{{ group.title|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.description|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.privacy }}", "{{ group.start_time }}", "{{ group.end_time }}", {{ group.days|tojson }})'>✏️ Editar</button>
-                            <button class="btn-success" onclick='startScheduledNow("{{ group.title|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.description|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.privacy }}")'>▶️ Iniciar ahora</button>
+                            <button class="btn-success" onclick='startScheduledNow("{{ group.id }}", "{{ group.title|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.description|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.privacy }}")'>▶️ Iniciar ahora</button>
                             <button class="btn-danger" onclick="deleteScheduleGroup('{{ group.id }}')">🗑️ Eliminar</button>
                         </div>
                     </div>
@@ -943,12 +961,27 @@
                 </select>
             </div>
             <div class="form-group">
+                <label>🖼️ URL de Miniatura (opcional)</label>
+                <input type="url" id="edit_thumbnail_url" placeholder="https://ejemplo.com/mi-miniatura.jpg">
+                <small style="color: var(--gray-600);">URL de imagen para la miniatura del live</small>
+            </div>
+            <div class="form-group">
                 <label>👶 ¿Es contenido para niños?</label>
-                <select id="made_for_kids">
+                <select id="edit_made_for_kids">
                     <option value="false" selected>No, no es contenido para niños</option>
                     <option value="true">Sí, es contenido para niños</option>
                 </select>
                 <small style="color: var(--gray-600);">Requerido por la ley COPPA.</small>
+            </div>
+            <div class="form-group">
+                <label>🗑️ Eliminación automática</label>
+                <select id="edit_delete_after">
+                    <option value="never" selected>Nunca eliminar automáticamente</option>
+                    <option value="1day">Eliminar después de 1 día</option>
+                    <option value="7days">Eliminar después de 7 días</option>
+                    <option value="30days">Eliminar después de 30 días</option>
+                </select>
+                <small style="color: var(--gray-600);">El video se eliminará automáticamente después de la transmisión</small>
             </div>
             <div class="time-row">
                 <div class="time-group">
@@ -1009,7 +1042,9 @@
             description: document.getElementById('description').value,
             privacy: document.getElementById('privacy').value,
             program_id: document.getElementById('program_id').value,
-            made_for_kids: document.getElementById('made_for_kids').value === 'true'
+            made_for_kids: document.getElementById('made_for_kids').value === 'true',
+            thumbnail_url: document.getElementById('thumbnail_url').value || null,
+            delete_after: document.getElementById('delete_after').value
         };
 
         const response = await fetch('/api/schedule', {
@@ -1031,6 +1066,10 @@
         const title = document.getElementById('title').value;
         const description = document.getElementById('description').value;
         const privacy = document.getElementById('privacy').value;
+        const thumbnail_url = document.getElementById('thumbnail_url').value || null;
+        const delete_after = document.getElementById('delete_after').value;
+        const program_id = document.getElementById('program_id').value;
+        const made_for_kids = document.getElementById('made_for_kids').value === 'true';
 
         if (!title) {
             showMessage('❌ Ingresa un título para el live', 'error');
@@ -1040,7 +1079,7 @@
         const response = await fetch('/api/start-now', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({title, description, privacy})
+            body: JSON.stringify({title, description, privacy, thumbnail_url, delete_after, program_id, made_for_kids})
         });
         const result = await response.json();
         if (result.success) {
@@ -1055,11 +1094,11 @@
     }
 
     // Iniciar live programado ahora
-    async function startScheduledNow(title, description, privacy) {
+    async function startScheduledNow(groupId, title, description, privacy) {
         const response = await fetch('/api/start-now', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({title, description, privacy})
+            body: JSON.stringify({title, description, privacy, group_id: groupId})
         });
         const result = await response.json();
         if (result.success) {
@@ -1146,6 +1185,9 @@
             title: document.getElementById('edit_title').value,
             description: document.getElementById('edit_description').value,
             privacy: document.getElementById('edit_privacy').value,
+            thumbnail_url: document.getElementById('edit_thumbnail_url').value || null,
+            made_for_kids: document.getElementById('edit_made_for_kids').value === 'true',
+            delete_after: document.getElementById('edit_delete_after').value,
             start_hour: document.getElementById('edit_start_hour').value,
             start_minute: document.getElementById('edit_start_minute').value,
             end_hour: document.getElementById('edit_end_hour').value,

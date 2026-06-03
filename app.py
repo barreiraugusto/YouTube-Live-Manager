@@ -135,6 +135,9 @@ def api_update_program(program_id):
 def schedule_live():
     data = request.json
     made_for_kids = data.get('made_for_kids', False)
+    thumbnail_url = data.get('thumbnail_url')
+    delete_after = data.get('delete_after', 'never')
+    
     if 'selected_days' not in data or not data['selected_days']:
         return jsonify({'success': False, 'error': 'Selecciona al menos un día'})
     if 'program_id' not in data or not data['program_id']:
@@ -158,7 +161,9 @@ def schedule_live():
             privacy_status=data.get('privacy', 'unlisted'),
             is_start=True,
             program_id=data['program_id'],
-            made_for_kids=made_for_kids
+            made_for_kids=made_for_kids,
+            thumbnail_url=thumbnail_url,
+            delete_after=delete_after
         )
 
         scheduler.schedule_live(
@@ -171,7 +176,9 @@ def schedule_live():
             privacy_status=data.get('privacy', 'unlisted'),
             is_start=False,
             program_id=data['program_id'],
-            made_for_kids=made_for_kids
+            made_for_kids=made_for_kids,
+            thumbnail_url=thumbnail_url,
+            delete_after=delete_after
         )
 
         scheduled_days.append(day_key)
@@ -210,6 +217,9 @@ def update_schedule():
     title = data.get('title')
     description = data.get('description', '')
     privacy = data.get('privacy', 'unlisted')
+    thumbnail_url = data.get('thumbnail_url')
+    made_for_kids = data.get('made_for_kids', False)
+    delete_after = data.get('delete_after', 'never')
     start_hour = data.get('start_hour')
     start_minute = data.get('start_minute')
     end_hour = data.get('end_hour')
@@ -226,6 +236,9 @@ def update_schedule():
         new_title=title,
         new_description=description,
         new_privacy=privacy,
+        new_thumbnail_url=thumbnail_url,
+        new_made_for_kids=made_for_kids,
+        new_delete_after=delete_after,
         new_start_hour=start_hour,
         new_start_minute=start_minute,
         new_end_hour=end_hour,
@@ -248,6 +261,10 @@ def start_live_now():
     if not data or not data.get('title'):
         return jsonify({'success': False, 'error': 'Título requerido'}), 400
     
+    # Si se proporciona group_id, obtener la configuración de la programación
+    thumbnail_url = data.get('thumbnail_url')
+    delete_after = data.get('delete_after', 'never')
+    
     result = youtube.create_scheduled_live(
         title=data['title'],
         description=data.get('description', ''),
@@ -255,7 +272,9 @@ def start_live_now():
         privacy_status=data.get('privacy', 'unlisted'),
         program_id=data.get('program_id'),
         is_immediate=True,
-        made_for_kids=data.get('made_for_kids', False)
+        made_for_kids=data.get('made_for_kids', False),
+        thumbnail_url=thumbnail_url,
+        delete_after=delete_after
     )
 
     if result.get('success'):

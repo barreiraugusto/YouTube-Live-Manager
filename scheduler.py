@@ -119,7 +119,8 @@ class LiveScheduler:
 
     def schedule_live(self, job_id, day_of_week, hour, minute,
                       title, description, privacy_status='unlisted',
-                      is_start=True, program_id=None, made_for_kids=False):
+                      is_start=True, program_id=None, made_for_kids=False,
+                      thumbnail_url=None, delete_after='never'):
 
         trigger = CronTrigger(
             day_of_week=day_of_week,
@@ -137,6 +138,8 @@ class LiveScheduler:
         print(f"   Hora: {hour:02d}:{minute:02d}")
         print(f"   Tipo: {'INICIO' if is_start else 'FIN'}")
         print(f"   Programa: {program_id}")
+        print(f"   Thumbnail: {thumbnail_url or 'No especificada'}")
+        print(f"   Eliminar después: {delete_after}")
 
         next_run = trigger.get_next_fire_time(None, datetime.now(self.timezone))
 
@@ -151,7 +154,9 @@ class LiveScheduler:
                 privacy_status=privacy_status,
                 program_id=program_id,
                 is_immediate=False,
-                made_for_kids=made_for_kids
+                made_for_kids=made_for_kids,
+                thumbnail_url=thumbnail_url,
+                delete_after=delete_after
             )
 
             if result.get('success'):
@@ -181,7 +186,10 @@ class LiveScheduler:
                 'program_id': program_id,
                 'broadcast_id': broadcast_id,  # ← GUARDAR broadcast_id
                 'group_key': f"{program_id}|{title}",
-                'next_run': next_run
+                'next_run': next_run,
+                'thumbnail_url': thumbnail_url,
+                'delete_after': delete_after,
+                'made_for_kids': made_for_kids
             }
         else:
             job = self.scheduler.add_job(
@@ -200,7 +208,10 @@ class LiveScheduler:
                 'type': 'end',
                 'program_id': program_id,
                 'group_key': f"{program_id}|{title}",
-                'next_run': next_run
+                'next_run': next_run,
+                'thumbnail_url': thumbnail_url,
+                'delete_after': delete_after,
+                'made_for_kids': made_for_kids
             }
 
         print(f"✅ Tarea programada correctamente")
@@ -416,7 +427,8 @@ class LiveScheduler:
 
     def update_schedule_group(self, group_key, new_title, new_description, new_privacy,
                               new_start_hour, new_start_minute, new_end_hour, new_end_minute,
-                              new_selected_days):
+                              new_selected_days, new_thumbnail_url=None, new_made_for_kids=False,
+                              new_delete_after='never'):
         """Actualizar todas las programaciones de un grupo"""
         try:
             # 1. Obtener información del grupo existente
@@ -459,7 +471,10 @@ class LiveScheduler:
                     description=new_description,
                     privacy_status=new_privacy,
                     is_start=True,
-                    program_id=program_id
+                    program_id=program_id,
+                    made_for_kids=new_made_for_kids,
+                    thumbnail_url=new_thumbnail_url,
+                    delete_after=new_delete_after
                 )
 
                 # Programar fin
