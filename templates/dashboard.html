@@ -767,9 +767,21 @@
             </div>
 
             <div class="form-group">
-                <label>🖼️ URL de Miniatura (opcional)</label>
-                <input type="url" id="thumbnail_url" placeholder="https://ejemplo.com/mi-miniatura.jpg">
-                <small style="color: var(--gray-600);">URL de imagen para la miniatura del live (recomendado 1280x720px)</small>
+                <label>🖼️ Miniatura (opcional)</label>
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <input type="url" id="thumbnail_url" placeholder="https://ejemplo.com/mi-miniatura.jpg">
+                        <small style="color: var(--gray-600);">URL de imagen o sube un archivo</small>
+                    </div>
+                    <div style="flex: 1;">
+                        <input type="file" id="thumbnail_file" accept="image/*" style="padding: 8px;">
+                        <small style="color: var(--gray-600);">Subir desde tu PC</small>
+                    </div>
+                </div>
+                <div id="thumbnail_preview" style="margin-top: 10px; display: none;">
+                    <img id="preview_image" src="" alt="Vista previa" style="max-width: 200px; max-height: 120px; border-radius: 8px; border: 1px solid var(--gray-300);">
+                    <button type="button" class="btn-danger btn-icon" onclick="clearThumbnail()" style="margin-left: 10px;">🗑️ Quitar</button>
+                </div>
             </div>
 
             <div class="form-group">
@@ -782,19 +794,19 @@
             </div>
 
             <div class="form-group">
-                <label>Visibilidad</label>
+                <label>👁️ Visibilidad al finalizar</label>
                 <select id="privacy">
-                    <option value="public">Público</option>
-                    <option value="unlisted" selected>No listado</option>
-                    <option value="private">Privado</option>
+                    <option value="public">Público - Visible para todos</option>
+                    <option value="unlisted" selected>No listado - Solo con enlace</option>
+                    <option value="private">Privado - Solo tú puedes verlo</option>
                 </select>
-                <small style="color: var(--gray-600);">Los videos privados solo serán visibles para ti</small>
+                <small style="color: var(--gray-600);">Define la privacidad del video después de la transmisión</small>
             </div>
 
             <div class="form-group">
                 <label>🗑️ Eliminación automática</label>
                 <select id="delete_after">
-                    <option value="never" selected>Nunca eliminar automáticamente</option>
+                    <option value="never" selected>Nunca eliminar - Conservar el video</option>
                     <option value="1day">Eliminar después de 1 día</option>
                     <option value="7days">Eliminar después de 7 días</option>
                     <option value="30days">Eliminar después de 30 días</option>
@@ -842,7 +854,7 @@
                             Acciones
                         </button>
                         <div id="schedule-actions-{{ loop.index }}" class="dropdown-menu">
-                            <button class="btn-edit" onclick='editSchedule("{{ group.id }}", "{{ group.title|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.description|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.privacy }}", "{{ group.start_time }}", "{{ group.end_time }}", {{ group.days|tojson }})'>✏️ Editar</button>
+                            <button class="btn-edit" onclick='editSchedule("{{ group.id }}", "{{ group.title|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.description|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.privacy }}", "{{ group.start_time }}", "{{ group.end_time }}", {{ group.days|tojson }}, "{{ group.thumbnail_url or '' }}")'>✏️ Editar</button>
                             <button class="btn-success" onclick='startScheduledNow("{{ group.id }}", "{{ group.title|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.description|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.privacy }}")'>▶️ Iniciar ahora</button>
                             <button class="btn-danger" onclick="deleteScheduleGroup('{{ group.id }}')">🗑️ Eliminar</button>
                         </div>
@@ -961,9 +973,21 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>🖼️ URL de Miniatura (opcional)</label>
-                <input type="url" id="edit_thumbnail_url" placeholder="https://ejemplo.com/mi-miniatura.jpg">
-                <small style="color: var(--gray-600);">URL de imagen para la miniatura del live</small>
+                <label>🖼️ Miniatura (opcional)</label>
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <input type="url" id="edit_thumbnail_url" placeholder="https://ejemplo.com/mi-miniatura.jpg">
+                        <small style="color: var(--gray-600);">URL de imagen o sube un archivo</small>
+                    </div>
+                    <div style="flex: 1;">
+                        <input type="file" id="edit_thumbnail_file" accept="image/*" style="padding: 8px;">
+                        <small style="color: var(--gray-600);">Subir desde tu PC</small>
+                    </div>
+                </div>
+                <div id="edit_thumbnail_preview" style="margin-top: 10px; display: none;">
+                    <img id="edit_preview_image" src="" alt="Vista previa" style="max-width: 200px; max-height: 120px; border-radius: 8px; border: 1px solid var(--gray-300);">
+                    <button type="button" class="btn-danger btn-icon" onclick="clearEditThumbnail()" style="margin-left: 10px;">🗑️ Quitar</button>
+                </div>
             </div>
             <div class="form-group">
                 <label>👶 ¿Es contenido para niños?</label>
@@ -976,7 +1000,7 @@
             <div class="form-group">
                 <label>🗑️ Eliminación automática</label>
                 <select id="edit_delete_after">
-                    <option value="never" selected>Nunca eliminar automáticamente</option>
+                    <option value="never" selected>Nunca eliminar - Conservar el video</option>
                     <option value="1day">Eliminar después de 1 día</option>
                     <option value="7days">Eliminar después de 7 días</option>
                     <option value="30days">Eliminar después de 30 días</option>
@@ -1011,6 +1035,10 @@
 <script>
     const DAYS_LIST = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const DAY_NAMES_SPANISH = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    
+    // Variables para almacenar las miniaturas subidas
+    let uploadedThumbnailDataUrl = null;
+    let editUploadedThumbnailDataUrl = null;
 
     function showMessage(message, type = 'success') {
         const messagesDiv = document.getElementById('flash-messages');
@@ -1032,6 +1060,9 @@
             return;
         }
 
+        // Usar la miniatura subida o la URL
+        const thumbnailUrl = uploadedThumbnailDataUrl || document.getElementById('thumbnail_url').value || null;
+
         const data = {
             selected_days: selectedDays,
             start_hour: document.getElementById('start_hour').value,
@@ -1043,7 +1074,7 @@
             privacy: document.getElementById('privacy').value,
             program_id: document.getElementById('program_id').value,
             made_for_kids: document.getElementById('made_for_kids').value === 'true',
-            thumbnail_url: document.getElementById('thumbnail_url').value || null,
+            thumbnail_url: thumbnailUrl,
             delete_after: document.getElementById('delete_after').value
         };
 
@@ -1066,7 +1097,8 @@
         const title = document.getElementById('title').value;
         const description = document.getElementById('description').value;
         const privacy = document.getElementById('privacy').value;
-        const thumbnail_url = document.getElementById('thumbnail_url').value || null;
+        // Usar la miniatura subida o la URL
+        const thumbnailUrl = uploadedThumbnailDataUrl || document.getElementById('thumbnail_url').value || null;
         const delete_after = document.getElementById('delete_after').value;
         const program_id = document.getElementById('program_id').value;
         const made_for_kids = document.getElementById('made_for_kids').value === 'true';
@@ -1079,7 +1111,7 @@
         const response = await fetch('/api/start-now', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({title, description, privacy, thumbnail_url, delete_after, program_id, made_for_kids})
+            body: JSON.stringify({title, description, privacy, thumbnail_url: thumbnailUrl, delete_after, program_id, made_for_kids})
         });
         const result = await response.json();
         if (result.success) {
@@ -1124,14 +1156,25 @@
     }
 
     // Función global para editar programación
-    window.editSchedule = function (groupKey, title, description, privacy, startTime, endTime, daysArray) {
-        console.log("Editando:", {groupKey, title, description, privacy, startTime, endTime, daysArray});
+    window.editSchedule = function (groupKey, title, description, privacy, startTime, endTime, daysArray, thumbnailUrl) {
+        console.log("Editando:", {groupKey, title, description, privacy, startTime, endTime, daysArray, thumbnailUrl});
 
         // Llenar el formulario del modal
         document.getElementById('edit_group_key').value = groupKey;
         document.getElementById('edit_title').value = title;
         document.getElementById('edit_description').value = description || '';
         document.getElementById('edit_privacy').value = privacy;
+        
+        // Manejar miniatura
+        editUploadedThumbnailDataUrl = null;
+        if (thumbnailUrl && thumbnailUrl.startsWith('data:image')) {
+            editUploadedThumbnailDataUrl = thumbnailUrl;
+            document.getElementById('edit_thumbnail_url').value = '';
+            showEditThumbnailPreview(thumbnailUrl);
+        } else {
+            document.getElementById('edit_thumbnail_url').value = thumbnailUrl || '';
+            hideEditThumbnailPreview();
+        }
 
         // Parsear horas
         let startHour = '20', startMinute = '00';
@@ -1179,13 +1222,16 @@
         e.preventDefault();
 
         const selectedDays = Array.from(document.querySelectorAll('#edit_days_container input:checked')).map(cb => cb.value);
+        
+        // Usar la miniatura subida o la URL
+        const thumbnailUrl = editUploadedThumbnailDataUrl || document.getElementById('edit_thumbnail_url').value || null;
 
         const data = {
             group_key: document.getElementById('edit_group_key').value,
             title: document.getElementById('edit_title').value,
             description: document.getElementById('edit_description').value,
             privacy: document.getElementById('edit_privacy').value,
-            thumbnail_url: document.getElementById('edit_thumbnail_url').value || null,
+            thumbnail_url: thumbnailUrl,
             made_for_kids: document.getElementById('edit_made_for_kids').value === 'true',
             delete_after: document.getElementById('edit_delete_after').value,
             start_hour: document.getElementById('edit_start_hour').value,
@@ -1300,6 +1346,88 @@
         }
         navigator.clipboard.writeText(url);
         showMessage('✅ URL copiada al portapapeles', 'success');
+    }
+    
+    // Manejo de miniaturas - Formulario principal
+    document.getElementById('thumbnail_file').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                uploadedThumbnailDataUrl = event.target.result;
+                showThumbnailPreview(uploadedThumbnailDataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    document.getElementById('thumbnail_url').addEventListener('input', function() {
+        if (this.value && !uploadedThumbnailDataUrl) {
+            showThumbnailPreview(this.value);
+        } else if (!this.value && uploadedThumbnailDataUrl) {
+            // Mantener la vista previa si hay archivo subido
+        } else {
+            hideThumbnailPreview();
+        }
+    });
+    
+    function showThumbnailPreview(src) {
+        const preview = document.getElementById('thumbnail_preview');
+        const img = document.getElementById('preview_image');
+        img.src = src;
+        preview.style.display = 'block';
+    }
+    
+    function hideThumbnailPreview() {
+        document.getElementById('thumbnail_preview').style.display = 'none';
+    }
+    
+    function clearThumbnail() {
+        uploadedThumbnailDataUrl = null;
+        document.getElementById('thumbnail_url').value = '';
+        document.getElementById('thumbnail_file').value = '';
+        hideThumbnailPreview();
+    }
+    
+    // Manejo de miniaturas - Formulario de edición
+    document.getElementById('edit_thumbnail_file').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                editUploadedThumbnailDataUrl = event.target.result;
+                showEditThumbnailPreview(editUploadedThumbnailDataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    document.getElementById('edit_thumbnail_url').addEventListener('input', function() {
+        if (this.value && !editUploadedThumbnailDataUrl) {
+            showEditThumbnailPreview(this.value);
+        } else if (!this.value && editUploadedThumbnailDataUrl) {
+            // Mantener la vista previa si hay archivo subido
+        } else {
+            hideEditThumbnailPreview();
+        }
+    });
+    
+    function showEditThumbnailPreview(src) {
+        const preview = document.getElementById('edit_thumbnail_preview');
+        const img = document.getElementById('edit_preview_image');
+        img.src = src;
+        preview.style.display = 'block';
+    }
+    
+    function hideEditThumbnailPreview() {
+        document.getElementById('edit_thumbnail_preview').style.display = 'none';
+    }
+    
+    function clearEditThumbnail() {
+        editUploadedThumbnailDataUrl = null;
+        document.getElementById('edit_thumbnail_url').value = '';
+        document.getElementById('edit_thumbnail_file').value = '';
+        hideEditThumbnailPreview();
     }
 
     // Verificar que las funciones estén disponibles globalmente
