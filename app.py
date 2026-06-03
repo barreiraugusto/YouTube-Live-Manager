@@ -137,6 +137,7 @@ def schedule_live():
     made_for_kids = data.get('made_for_kids', False)
     thumbnail_url = data.get('thumbnail_url')
     delete_after = data.get('delete_after', 'never')
+    start_offset_minutes = int(data.get('start_offset_minutes', 0))  # ← NUEVO: offset en minutos
     
     if 'selected_days' not in data or not data['selected_days']:
         return jsonify({'success': False, 'error': 'Selecciona al menos un día'})
@@ -163,7 +164,8 @@ def schedule_live():
             program_id=data['program_id'],
             made_for_kids=made_for_kids,
             thumbnail_url=thumbnail_url,
-            delete_after=delete_after
+            delete_after=delete_after,
+            start_offset_minutes=start_offset_minutes  # ← NUEVO: pasar offset
         )
 
         scheduler.schedule_live(
@@ -178,7 +180,8 @@ def schedule_live():
             program_id=data['program_id'],
             made_for_kids=made_for_kids,
             thumbnail_url=thumbnail_url,
-            delete_after=delete_after
+            delete_after=delete_after,
+            start_offset_minutes=start_offset_minutes  # ← NUEVO: pasar offset también al end
         )
 
         scheduled_days.append(day_key)
@@ -225,6 +228,7 @@ def update_schedule():
     end_hour = data.get('end_hour')
     end_minute = data.get('end_minute')
     selected_days = data.get('selected_days', [])
+    start_offset_minutes = int(data.get('start_offset_minutes', 0))  # ← NUEVO: offset en minutos
 
     # Validación de inputs requeridos
     if not all([group_key, title, start_hour, start_minute, end_hour, end_minute, selected_days]):
@@ -243,7 +247,8 @@ def update_schedule():
         new_start_minute=start_minute,
         new_end_hour=end_hour,
         new_end_minute=end_minute,
-        new_selected_days=selected_days
+        new_selected_days=selected_days,
+        new_start_offset_minutes=start_offset_minutes  # ← NUEVO: pasar offset
     )
 
     if result.get('success'):

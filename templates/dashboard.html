@@ -767,6 +767,19 @@
             </div>
 
             <div class="form-group">
+                <label>⏱️ Anticipar inicio (opcional)</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="start_offset_minutes" min="-60" max="60" value="0" 
+                           style="width: 80px; padding: 8px; border: 1px solid var(--gray-300); border-radius: 4px;"
+                           placeholder="0">
+                    <span style="color: var(--gray-600);">minutos</span>
+                    <small style="color: var(--gray-600); margin-left: 10px;">
+                        Usa valores negativos para anticipar (ej: -5 para 5 min antes) o positivos para retrasar.
+                    </small>
+                </div>
+            </div>
+
+            <div class="form-group">
                 <label>🖼️ Miniatura (opcional)</label>
                 <div style="display: flex; gap: 10px; align-items: flex-start;">
                     <div style="flex: 1;">
@@ -1023,6 +1036,20 @@
                     </div>
                 </div>
             </div>
+            
+            <div class="form-group">
+                <label>⏱️ Anticipar inicio (opcional)</label>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="number" id="edit_start_offset_minutes" min="-60" max="60" value="0" 
+                           style="width: 80px; padding: 8px; border: 1px solid var(--gray-300); border-radius: 4px;"
+                           placeholder="0">
+                    <span style="color: var(--gray-600);">minutos</span>
+                    <small style="color: var(--gray-600); margin-left: 10px;">
+                        Usa valores negativos para anticipar o positivos para retrasar.
+                    </small>
+                </div>
+            </div>
+            
             <div class="form-group">
                 <label>Días de la semana</label>
                 <div class="days-grid" id="edit_days_container"></div>
@@ -1062,6 +1089,9 @@
 
         // Usar la miniatura subida o la URL
         const thumbnailUrl = uploadedThumbnailDataUrl || document.getElementById('thumbnail_url').value || null;
+        
+        // Obtener offset de minutos para anticipar/retrasar inicio
+        const startOffsetMinutes = parseInt(document.getElementById('start_offset_minutes').value) || 0;
 
         const data = {
             selected_days: selectedDays,
@@ -1075,7 +1105,8 @@
             program_id: document.getElementById('program_id').value,
             made_for_kids: document.getElementById('made_for_kids').value === 'true',
             thumbnail_url: thumbnailUrl,
-            delete_after: document.getElementById('delete_after').value
+            delete_after: document.getElementById('delete_after').value,
+            start_offset_minutes: startOffsetMinutes  // ← NUEVO: incluir offset
         };
 
         const response = await fetch('/api/schedule', {
@@ -1225,6 +1256,9 @@
         
         // Usar la miniatura subida o la URL
         const thumbnailUrl = editUploadedThumbnailDataUrl || document.getElementById('edit_thumbnail_url').value || null;
+        
+        // Obtener offset de minutos para anticipar/retrasar inicio (del formulario de edición si existe, o 0)
+        const startOffsetMinutes = parseInt(document.getElementById('edit_start_offset_minutes')?.value) || 0;
 
         const data = {
             group_key: document.getElementById('edit_group_key').value,
@@ -1238,7 +1272,8 @@
             start_minute: document.getElementById('edit_start_minute').value,
             end_hour: document.getElementById('edit_end_hour').value,
             end_minute: document.getElementById('edit_end_minute').value,
-            selected_days: selectedDays
+            selected_days: selectedDays,
+            start_offset_minutes: startOffsetMinutes  // ← NUEVO: incluir offset en edición
         };
 
         console.log("Enviando actualización:", data);
