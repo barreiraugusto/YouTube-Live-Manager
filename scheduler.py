@@ -119,7 +119,8 @@ class LiveScheduler:
 
     def schedule_live(self, job_id, day_of_week, hour, minute,
                       title, description, privacy_status='unlisted',
-                      is_start=True, program_id=None, made_for_kids=False):
+                      is_start=True, program_id=None, made_for_kids=False,
+                      thumbnail_url=None, delete_after='never'):
 
         trigger = CronTrigger(
             day_of_week=day_of_week,
@@ -137,6 +138,8 @@ class LiveScheduler:
         print(f"   Hora: {hour:02d}:{minute:02d}")
         print(f"   Tipo: {'INICIO' if is_start else 'FIN'}")
         print(f"   Programa: {program_id}")
+        print(f"   Thumbnail: {thumbnail_url or 'No especificada'}")
+        print(f"   Eliminar después: {delete_after}")
 
         next_run = trigger.get_next_fire_time(None, datetime.now(self.timezone))
 
@@ -151,7 +154,9 @@ class LiveScheduler:
                 privacy_status=privacy_status,
                 program_id=program_id,
                 is_immediate=False,
-                made_for_kids=made_for_kids
+                made_for_kids=made_for_kids,
+                thumbnail_url=thumbnail_url,
+                delete_after=delete_after
             )
 
             if result.get('success'):
@@ -181,7 +186,10 @@ class LiveScheduler:
                 'program_id': program_id,
                 'broadcast_id': broadcast_id,  # ← GUARDAR broadcast_id
                 'group_key': f"{program_id}|{title}",
-                'next_run': next_run
+                'next_run': next_run,
+                'thumbnail_url': thumbnail_url,
+                'delete_after': delete_after,
+                'made_for_kids': made_for_kids
             }
         else:
             job = self.scheduler.add_job(
@@ -200,7 +208,10 @@ class LiveScheduler:
                 'type': 'end',
                 'program_id': program_id,
                 'group_key': f"{program_id}|{title}",
-                'next_run': next_run
+                'next_run': next_run,
+                'thumbnail_url': thumbnail_url,
+                'delete_after': delete_after,
+                'made_for_kids': made_for_kids
             }
 
         print(f"✅ Tarea programada correctamente")
@@ -401,11 +412,23 @@ class LiveScheduler:
             traceback.print_exc()
 
     def get_active_streams(self):
-        return list(self.active_streams.values())
+        streams = []
+        for stream in self.active_streams.values():
+            # Agregar URL de miniatura y stream_url si están disponibles
+            broadcast_id = stream.get('broadcast_id', '')
+            if broadcast_id:
+                stream['thumbnail_url'] = f"https://img.youtube.com/vi/{broadcast_id}/hqdefault.jpg"
+                stream['stream_url'] = f"https://www.youtube.com/watch?v={broadcast_id}"
+            else:
+                stream['thumbnail_url'] = None
+                stream['stream_url'] = None
+            streams.append(stream)
+        return streams
 
     def update_schedule_group(self, group_key, new_title, new_description, new_privacy,
                               new_start_hour, new_start_minute, new_end_hour, new_end_minute,
-                              new_selected_days):
+                              new_selected_days, new_thumbnail_url=None, new_made_for_kids=False,
+                              new_delete_after='never'):
         """Actualizar todas las programaciones de un grupo"""
         try:
             # 1. Obtener información del grupo existente
@@ -448,7 +471,10 @@ class LiveScheduler:
                     description=new_description,
                     privacy_status=new_privacy,
                     is_start=True,
-                    program_id=program_id
+                    program_id=program_id,
+                    made_for_kids=new_made_for_kids,
+                    thumbnail_url=new_thumbnail_url,
+                    delete_after=new_delete_after
                 )
 
                 # Programar fin
@@ -513,13 +539,16 @@ class LiveScheduler:
                 groups[group_key] = {
                     'id': group_key,
                     'title': info['title'],
+                    'description': info.get('description', ''),
+                    'privacy': info.get('privacy_status', 'unlisted'),
                     'program_id': info.get('program_id', ''),
                     'program_name': programs.get(info.get('program_id', ''), 'Sin programa'),
                     'days': [],
                     'start_time': None,
                     'end_time': None,
                     'day_count': 0,
-                    'next_run': None
+                    'next_run': None,
+                    'thumbnail_url': None
                 }
 
             day_name = self._get_day_name(info.get('day', 0))
@@ -534,6 +563,14 @@ class LiveScheduler:
                 groups[group_key]['end_time'] = time_str
 
             groups[group_key]['day_count'] = len(groups[group_key]['days'])
+
+        # Generar URL de miniatura basada en el título (usando placeholder por ahora)
+        for group in groups.values():
+            # En una implementación real, se podría obtener la miniatura de YouTube API
+            # Por ahora usamos un placeholder con el título codificado
+            import urllib.parse
+            encoded_title = urllib.parse.quote(group['title'])
+            group['thumbnail_url'] = f"https://img.youtube.com/vi/search?q={encoded_title}/hqdefault.jpg"
 
         result = list(groups.values())
         result.sort(key=lambda x: x['title'])

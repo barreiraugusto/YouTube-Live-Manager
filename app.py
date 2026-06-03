@@ -3,11 +3,25 @@ from youtube_api import YouTubeLiveManager
 from scheduler import LiveScheduler
 from datetime import datetime
 import warnings
+import logging
+import os
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
+# Configuración de logging estructurado
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('app.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
-app.secret_key = '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'
+# 🔒 CORRECCIÓN: Usar variable de entorno para secret_key
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24).hex())
 
 youtube = YouTubeLiveManager()
 scheduler = LiveScheduler(youtube)
@@ -33,8 +47,9 @@ def get_cached_or_fetch(cache_dict, fetch_function, force_refresh=False):
         try:
             cache_dict['data'] = fetch_function()
             cache_dict['timestamp'] = ahora
+            logger.info("Cache actualizado correctamente")
         except Exception as e:
-            print(f"Error: {e}")
+            logger.error(f"Error al obtener datos: {e}", exc_info=True)
             if not cache_dict['data']:
                 cache_dict['data'] = []
     return cache_dict['data']
@@ -79,14 +94,23 @@ def api_get_programs():
 def api_create_program():
     """Crear un nuevo programa"""
     data = request.json
+    if not data:
+        return jsonify({'success': False, 'error': 'Datos inválidos'}), 400
+    
     program_id = data.get('id', '').strip().lower().replace(' ', '_')
     name = data.get('name', '').strip()
     obs_scene = data.get('obs_scene', name)
 
+    # Validación de inputs
     if not program_id or not name:
-        return jsonify({'success': False, 'error': 'ID y nombre son requeridos'})
+        logger.warning("Intento de crear programa sin ID o nombre")
+        return jsonify({'success': False, 'error': 'ID y nombre son requeridos'}), 400
 
     result = youtube.create_program(program_id, name, obs_scene)
+    if result.get('success'):
+        logger.info(f"Programa creado: {program_id}")
+    else:
+        logger.error(f"Error al crear programa: {result.get('error')}")
     return jsonify(result)
 
 
@@ -111,6 +135,9 @@ def api_update_program(program_id):
 def schedule_live():
     data = request.json
     made_for_kids = data.get('made_for_kids', False)
+    thumbnail_url = data.get('thumbnail_url')
+    delete_after = data.get('delete_after', 'never')
+    
     if 'selected_days' not in data or not data['selected_days']:
         return jsonify({'success': False, 'error': 'Selecciona al menos un día'})
     if 'program_id' not in data or not data['program_id']:
@@ -134,7 +161,9 @@ def schedule_live():
             privacy_status=data.get('privacy', 'unlisted'),
             is_start=True,
             program_id=data['program_id'],
-            made_for_kids=made_for_kids
+            made_for_kids=made_for_kids,
+            thumbnail_url=thumbnail_url,
+            delete_after=delete_after
         )
 
         scheduler.schedule_live(
@@ -147,7 +176,9 @@ def schedule_live():
             privacy_status=data.get('privacy', 'unlisted'),
             is_start=False,
             program_id=data['program_id'],
-            made_for_kids=made_for_kids
+            made_for_kids=made_for_kids,
+            thumbnail_url=thumbnail_url,
+            delete_after=delete_after
         )
 
         scheduled_days.append(day_key)
@@ -164,35 +195,50 @@ def schedule_live():
 @app.route('/api/unschedule-group', methods=['POST'])
 def unschedule_group():
     data = request.json
+    if not data or not data.get('group_key'):
+        return jsonify({'success': False, 'error': 'group_key requerido'}), 400
+    
     removed_count = scheduler.remove_group(data.get('group_key'))
     if removed_count > 0:
+        logger.info(f"Se eliminaron {removed_count} programaciones")
         flash(f'✅ Eliminadas {removed_count} programaciones', 'success')
         return jsonify({'success': True, 'removed_count': removed_count})
-    return jsonify({'success': False, 'error': 'No encontrado'}) @ app.route('/api/update-schedule', methods=['POST'])
+    return jsonify({'success': False, 'error': 'No encontrado'})
 
 
+@app.route('/api/update-schedule', methods=['POST'])
 def update_schedule():
     """Actualizar programación existente"""
     data = request.json
+    if not data:
+        return jsonify({'success': False, 'error': 'Datos inválidos'}), 400
 
     group_key = data.get('group_key')
     title = data.get('title')
     description = data.get('description', '')
     privacy = data.get('privacy', 'unlisted')
+    thumbnail_url = data.get('thumbnail_url')
+    made_for_kids = data.get('made_for_kids', False)
+    delete_after = data.get('delete_after', 'never')
     start_hour = data.get('start_hour')
     start_minute = data.get('start_minute')
     end_hour = data.get('end_hour')
     end_minute = data.get('end_minute')
     selected_days = data.get('selected_days', [])
 
+    # Validación de inputs requeridos
     if not all([group_key, title, start_hour, start_minute, end_hour, end_minute, selected_days]):
-        return jsonify({'success': False, 'error': 'Faltan datos requeridos'})
+        logger.warning("Intento de actualizar programación con datos incompletos")
+        return jsonify({'success': False, 'error': 'Faltan datos requeridos'}), 400
 
     result = scheduler.update_schedule_group(
         group_key=group_key,
         new_title=title,
         new_description=description,
         new_privacy=privacy,
+        new_thumbnail_url=thumbnail_url,
+        new_made_for_kids=made_for_kids,
+        new_delete_after=delete_after,
         new_start_hour=start_hour,
         new_start_minute=start_minute,
         new_end_hour=end_hour,
@@ -201,15 +247,24 @@ def update_schedule():
     )
 
     if result.get('success'):
+        logger.info(f"Programación actualizada: {result['new_count']} tareas creadas")
         flash(f'✅ Programación actualizada: {result["new_count"]} tareas creadas', 'success')
         return jsonify(result)
     else:
+        logger.error(f"Error al actualizar programación: {result.get('error')}")
         return jsonify(result)
 
 
 @app.route('/api/start-now', methods=['POST'])
 def start_live_now():
     data = request.json
+    if not data or not data.get('title'):
+        return jsonify({'success': False, 'error': 'Título requerido'}), 400
+    
+    # Si se proporciona group_id, obtener la configuración de la programación
+    thumbnail_url = data.get('thumbnail_url')
+    delete_after = data.get('delete_after', 'never')
+    
     result = youtube.create_scheduled_live(
         title=data['title'],
         description=data.get('description', ''),
@@ -217,10 +272,13 @@ def start_live_now():
         privacy_status=data.get('privacy', 'unlisted'),
         program_id=data.get('program_id'),
         is_immediate=True,
-        made_for_kids=data.get('made_for_kids', False)
+        made_for_kids=data.get('made_for_kids', False),
+        thumbnail_url=thumbnail_url,
+        delete_after=delete_after
     )
 
     if result.get('success'):
+        logger.info(f"Iniciando live inmediato: {data['title']}")
         # Configurar OBS
         youtube.set_stream_key(result['stream_key'])
         scene = youtube.get_program(data.get('program_id')) if data.get('program_id') else None
@@ -241,14 +299,15 @@ def start_live_now():
                 id=result['broadcast_id'],
                 broadcastStatus='live'
             ).execute()
-            print("✅ Broadcast en vivo")
+            logger.info("✅ Broadcast en vivo")
         except Exception as e:
-            print(f"⚠️ Error en transición: {e}")
+            logger.error(f"⚠️ Error en transición: {e}", exc_info=True)
 
         youtube.start_obs_stream()
 
         flash(f'✅ Live "{data["title"]}" iniciado', 'success')
         return jsonify({'success': True, 'broadcast_id': result['broadcast_id']})
+    logger.error(f"Error al iniciar live: {result.get('error')}")
     return jsonify({'success': False, 'error': result.get('error')})
 
 
@@ -259,31 +318,39 @@ def stop_live_now(broadcast_id):
             part='status', id=broadcast_id, broadcastStatus='complete'
         ).execute()
         youtube.stop_obs_stream()
+        logger.info(f"Transmisión detenida: {broadcast_id}")
         flash('✅ Transmisión detenida', 'success')
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        logger.error(f"Error al detener transmisión: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/update-broadcast/<broadcast_id>', methods=['PUT'])
 def update_broadcast(broadcast_id):
     data = request.json
+    if not data:
+        return jsonify({'success': False, 'error': 'Datos inválidos'}), 400
     try:
         youtube.update_live_metadata(broadcast_id, data.get('title'), data.get('description'))
         cache_broadcasts['timestamp'] = None
+        logger.info(f"Broadcast actualizado: {broadcast_id}")
         flash('✅ Transmisión actualizada', 'success')
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        logger.error(f"Error al actualizar broadcast: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/api/delete-broadcast/<broadcast_id>', methods=['DELETE'])
 def delete_broadcast(broadcast_id):
     if youtube.delete_broadcast(broadcast_id):
         cache_broadcasts['timestamp'] = None
+        logger.info(f"Broadcast eliminado: {broadcast_id}")
         flash('✅ Eliminada', 'success')
         return jsonify({'success': True})
-    return jsonify({'success': False})
+    logger.warning(f"No se pudo eliminar broadcast: {broadcast_id}")
+    return jsonify({'success': False}), 404
 
 
 @app.route('/api/refresh', methods=['POST'])

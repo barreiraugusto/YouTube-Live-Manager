@@ -163,10 +163,40 @@
             margin-bottom: 15px;
             border: 1px solid var(--gray-300);
             transition: all 0.2s;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
         }
 
         .schedule-card:hover {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .schedule-thumbnail {
+            width: 160px;
+            height: 90px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        .schedule-thumbnail-placeholder {
+            width: 160px;
+            height: 90px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .schedule-content {
+            flex: 1;
+            min-width: 0;
         }
 
         .schedule-header {
@@ -251,6 +281,23 @@
             padding: 15px;
             margin-bottom: 15px;
             border-left: 4px solid var(--danger);
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .active-stream-thumbnail {
+            width: 160px;
+            height: 90px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        .active-stream-content {
+            flex: 1;
+            min-width: 0;
         }
 
         .live-badge {
@@ -375,6 +422,72 @@
             background: #2980b9;
         }
 
+        .btn-icon {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Dropdown menu */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            z-index: 100;
+            margin-top: 5px;
+            border: 1px solid var(--gray-300);
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-menu button {
+            width: 100%;
+            text-align: left;
+            padding: 10px 15px;
+            background: none;
+            color: var(--gray-800);
+            border: none;
+            border-radius: 0;
+        }
+
+        .dropdown-menu button:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .dropdown-menu button:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+
+        .dropdown-menu button:hover {
+            background: var(--gray-100);
+        }
+
+        .dropdown-menu button.btn-danger {
+            color: var(--danger);
+        }
+
+        .dropdown-menu button.btn-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .dropdown-toggle::after {
+            content: '▼';
+            font-size: 0.7rem;
+            margin-left: 5px;
+        }
+
         /* Alertas */
         .alert {
             padding: 12px 15px;
@@ -478,6 +591,10 @@
             overflow-y: auto;
         }
 
+        .modal-content.wide {
+            max-width: 700px;
+        }
+
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -499,6 +616,15 @@
             color: var(--gray-800);
         }
 
+        .modal-footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--gray-300);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
         @media (max-width: 768px) {
             .time-row {
                 grid-template-columns: 1fr;
@@ -510,6 +636,16 @@
 
             .schedule-header {
                 flex-direction: column;
+            }
+
+            .schedule-card, .active-stream-card {
+                flex-direction: column;
+            }
+
+            .schedule-thumbnail, .active-stream-thumbnail,
+            .schedule-thumbnail-placeholder {
+                width: 100%;
+                height: 120px;
             }
         }
     </style>
@@ -547,17 +683,28 @@
         <h2>🔴 TRANSMISIONES EN VIVO</h2>
         {% for stream in active_streams %}
         <div class="active-stream-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                <div>
-                    <span class="live-badge">🔴 EN VIVO</span>
-                    <strong style="margin-left: 10px;">{{ stream.title }}</strong>
+            <img src="{{ stream.thumbnail_url or 'https://img.youtube.com/vi/default/hqdefault.jpg' }}" 
+                 alt="Miniatura" class="active-stream-thumbnail" 
+                 onerror="this.src='https://img.youtube.com/vi/default/hqdefault.jpg'">
+            <div class="active-stream-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <span class="live-badge">🔴 EN VIVO</span>
+                        <strong style="margin-left: 10px;">{{ stream.title }}</strong>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn-icon dropdown-toggle" onclick="toggleDropdown(event, 'stream-actions-{{ loop.index }}')">
+                            Acciones
+                        </button>
+                        <div id="stream-actions-{{ loop.index }}" class="dropdown-menu">
+                            <button onclick="copyStreamUrl('{{ stream.stream_url or '' }}')">📋 Copiar URL</button>
+                            <button class="btn-danger" onclick="stopLiveNow('{{ stream.broadcast_id }}')">⏹️ Detener transmisión</button>
+                        </div>
+                    </div>
                 </div>
-                <button class="btn-danger" onclick="stopLiveNow('{{ stream.broadcast_id }}')">
-                    ⏹️ Detener transmisión
-                </button>
-            </div>
-            <div style="margin-top: 10px; font-size: 0.8rem; color: var(--gray-600);">
-                📅 Iniciado: {{ stream.start_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                <div style="margin-top: 10px; font-size: 0.8rem; color: var(--gray-600);">
+                    📅 Iniciado: {{ stream.start_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -620,6 +767,24 @@
             </div>
 
             <div class="form-group">
+                <label>🖼️ Miniatura (opcional)</label>
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <input type="url" id="thumbnail_url" placeholder="https://ejemplo.com/mi-miniatura.jpg">
+                        <small style="color: var(--gray-600);">URL de imagen o sube un archivo</small>
+                    </div>
+                    <div style="flex: 1;">
+                        <input type="file" id="thumbnail_file" accept="image/*" style="padding: 8px;">
+                        <small style="color: var(--gray-600);">Subir desde tu PC</small>
+                    </div>
+                </div>
+                <div id="thumbnail_preview" style="margin-top: 10px; display: none;">
+                    <img id="preview_image" src="" alt="Vista previa" style="max-width: 200px; max-height: 120px; border-radius: 8px; border: 1px solid var(--gray-300);">
+                    <button type="button" class="btn-danger btn-icon" onclick="clearThumbnail()" style="margin-left: 10px;">🗑️ Quitar</button>
+                </div>
+            </div>
+
+            <div class="form-group">
                 <label>👶 ¿Es contenido para niños?</label>
                 <select id="made_for_kids">
                     <option value="false" selected>No, no es contenido para niños</option>
@@ -629,12 +794,24 @@
             </div>
 
             <div class="form-group">
-                <label>Visibilidad</label>
+                <label>👁️ Visibilidad al finalizar</label>
                 <select id="privacy">
-                    <option value="public">Público</option>
-                    <option value="unlisted" selected>No listado</option>
-                    <option value="private">Privado</option>
+                    <option value="public">Público - Visible para todos</option>
+                    <option value="unlisted" selected>No listado - Solo con enlace</option>
+                    <option value="private">Privado - Solo tú puedes verlo</option>
                 </select>
+                <small style="color: var(--gray-600);">Define la privacidad del video después de la transmisión</small>
+            </div>
+
+            <div class="form-group">
+                <label>🗑️ Eliminación automática</label>
+                <select id="delete_after">
+                    <option value="never" selected>Nunca eliminar - Conservar el video</option>
+                    <option value="1day">Eliminar después de 1 día</option>
+                    <option value="7days">Eliminar después de 7 días</option>
+                    <option value="30days">Eliminar después de 30 días</option>
+                </select>
+                <small style="color: var(--gray-600);">El video se eliminará automáticamente después de la transmisión</small>
             </div>
 
             <div style="display: flex; gap: 10px;">
@@ -651,38 +828,37 @@
             {% if scheduled and scheduled|length > 0 %}
             {% for group in scheduled %}
             <div class="schedule-card" data-group-key="{{ group.id }}">
-                <div class="schedule-header">
-                    <div class="schedule-title">{{ group.title }}</div>
-                    <div style="display: flex; gap: 10px;">
-                        <span class="schedule-badge" style="background: var(--info);">{{ group.program_name }}</span>
-                        <span class="schedule-badge">{{ group.day_count }} día{% if group.day_count != 1 %}s{% endif %}</span>
+                <img src="{{ group.thumbnail_url or 'https://img.youtube.com/vi/default/hqdefault.jpg' }}" 
+                     alt="Miniatura" class="schedule-thumbnail" 
+                     onerror="this.src='https://img.youtube.com/vi/default/hqdefault.jpg'">
+                <div class="schedule-content">
+                    <div class="schedule-header">
+                        <div class="schedule-title">{{ group.title }}</div>
+                        <div style="display: flex; gap: 10px;">
+                            <span class="schedule-badge" style="background: var(--info);">{{ group.program_name }}</span>
+                            <span class="schedule-badge">{{ group.day_count }} día{% if group.day_count != 1 %}s{% endif %}</span>
+                        </div>
                     </div>
-                </div>
-                <div class="days-container">
-                    {% for day in group.days %}
-                    <span class="day-chip">{{ day }}</span>
-                    {% endfor %}
-                </div>
-                <div class="schedule-times">
-                    <div>🟢 <span class="time-start">Inicio: {{ group.start_time }}</span></div>
-                    <div>🔴 <span class="time-end">Fin: {{ group.end_time }}</span></div>
-                </div>
-                <div class="next-run">📅 Próxima: {{ group.next_run if group.next_run else 'Por definir' }}</div>
-                <div class="schedule-actions">
-                    <button class="btn-edit" onclick='editSchedule("{{ group.id }}", "{{ group.title|replace('
-                    "', '\\"')|replace("'", "\\'") }}", "{{ group.description|replace('"', '\\"')|replace("'", "\\'")
-                    }}", "{{ group.privacy }}", "{{ group.start_time }}", "{{ group.end_time }}", {{ group.days|tojson
-                    }})'>
-                    ✏️ Editar
-                    </button>
-                    <button class="btn-danger" onclick="deleteScheduleGroup('{{ group.id }}')">
-                        🗑️ Eliminar
-                    </button>
-                    <button class="btn-success" onclick='startScheduledNow("{{ group.title|replace('
-                    "', '\\"')|replace("'", "\\'") }}", "{{ group.description|replace('"', '\\"')|replace("'", "\\'")
-                    }}", "{{ group.privacy }}")'>
-                    ▶️ Iniciar ahora
-                    </button>
+                    <div class="days-container">
+                        {% for day in group.days %}
+                        <span class="day-chip">{{ day }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="schedule-times">
+                        <div>🟢 <span class="time-start">Inicio: {{ group.start_time }}</span></div>
+                        <div>🔴 <span class="time-end">Fin: {{ group.end_time }}</span></div>
+                    </div>
+                    <div class="next-run">📅 Próxima: {{ group.next_run if group.next_run else 'Por definir' }}</div>
+                    <div class="schedule-actions">
+                        <button class="btn-icon dropdown-toggle" onclick="toggleDropdown(event, 'schedule-actions-{{ loop.index }}')">
+                            Acciones
+                        </button>
+                        <div id="schedule-actions-{{ loop.index }}" class="dropdown-menu">
+                            <button class="btn-edit" onclick='editSchedule("{{ group.id }}", "{{ group.title|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.description|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.privacy }}", "{{ group.start_time }}", "{{ group.end_time }}", {{ group.days|tojson }}, "{{ group.thumbnail_url or '' }}")'>✏️ Editar</button>
+                            <button class="btn-success" onclick='startScheduledNow("{{ group.id }}", "{{ group.title|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.description|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.privacy }}")'>▶️ Iniciar ahora</button>
+                            <button class="btn-danger" onclick="deleteScheduleGroup('{{ group.id }}')">🗑️ Eliminar</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -797,12 +973,39 @@
                 </select>
             </div>
             <div class="form-group">
+                <label>🖼️ Miniatura (opcional)</label>
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                    <div style="flex: 1;">
+                        <input type="url" id="edit_thumbnail_url" placeholder="https://ejemplo.com/mi-miniatura.jpg">
+                        <small style="color: var(--gray-600);">URL de imagen o sube un archivo</small>
+                    </div>
+                    <div style="flex: 1;">
+                        <input type="file" id="edit_thumbnail_file" accept="image/*" style="padding: 8px;">
+                        <small style="color: var(--gray-600);">Subir desde tu PC</small>
+                    </div>
+                </div>
+                <div id="edit_thumbnail_preview" style="margin-top: 10px; display: none;">
+                    <img id="edit_preview_image" src="" alt="Vista previa" style="max-width: 200px; max-height: 120px; border-radius: 8px; border: 1px solid var(--gray-300);">
+                    <button type="button" class="btn-danger btn-icon" onclick="clearEditThumbnail()" style="margin-left: 10px;">🗑️ Quitar</button>
+                </div>
+            </div>
+            <div class="form-group">
                 <label>👶 ¿Es contenido para niños?</label>
-                <select id="made_for_kids">
+                <select id="edit_made_for_kids">
                     <option value="false" selected>No, no es contenido para niños</option>
                     <option value="true">Sí, es contenido para niños</option>
                 </select>
                 <small style="color: var(--gray-600);">Requerido por la ley COPPA.</small>
+            </div>
+            <div class="form-group">
+                <label>🗑️ Eliminación automática</label>
+                <select id="edit_delete_after">
+                    <option value="never" selected>Nunca eliminar - Conservar el video</option>
+                    <option value="1day">Eliminar después de 1 día</option>
+                    <option value="7days">Eliminar después de 7 días</option>
+                    <option value="30days">Eliminar después de 30 días</option>
+                </select>
+                <small style="color: var(--gray-600);">El video se eliminará automáticamente después de la transmisión</small>
             </div>
             <div class="time-row">
                 <div class="time-group">
@@ -832,6 +1035,10 @@
 <script>
     const DAYS_LIST = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const DAY_NAMES_SPANISH = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    
+    // Variables para almacenar las miniaturas subidas
+    let uploadedThumbnailDataUrl = null;
+    let editUploadedThumbnailDataUrl = null;
 
     function showMessage(message, type = 'success') {
         const messagesDiv = document.getElementById('flash-messages');
@@ -853,6 +1060,9 @@
             return;
         }
 
+        // Usar la miniatura subida o la URL
+        const thumbnailUrl = uploadedThumbnailDataUrl || document.getElementById('thumbnail_url').value || null;
+
         const data = {
             selected_days: selectedDays,
             start_hour: document.getElementById('start_hour').value,
@@ -863,7 +1073,9 @@
             description: document.getElementById('description').value,
             privacy: document.getElementById('privacy').value,
             program_id: document.getElementById('program_id').value,
-            made_for_kids: document.getElementById('made_for_kids').value === 'true'
+            made_for_kids: document.getElementById('made_for_kids').value === 'true',
+            thumbnail_url: thumbnailUrl,
+            delete_after: document.getElementById('delete_after').value
         };
 
         const response = await fetch('/api/schedule', {
@@ -885,6 +1097,11 @@
         const title = document.getElementById('title').value;
         const description = document.getElementById('description').value;
         const privacy = document.getElementById('privacy').value;
+        // Usar la miniatura subida o la URL
+        const thumbnailUrl = uploadedThumbnailDataUrl || document.getElementById('thumbnail_url').value || null;
+        const delete_after = document.getElementById('delete_after').value;
+        const program_id = document.getElementById('program_id').value;
+        const made_for_kids = document.getElementById('made_for_kids').value === 'true';
 
         if (!title) {
             showMessage('❌ Ingresa un título para el live', 'error');
@@ -894,7 +1111,7 @@
         const response = await fetch('/api/start-now', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({title, description, privacy})
+            body: JSON.stringify({title, description, privacy, thumbnail_url: thumbnailUrl, delete_after, program_id, made_for_kids})
         });
         const result = await response.json();
         if (result.success) {
@@ -909,11 +1126,11 @@
     }
 
     // Iniciar live programado ahora
-    async function startScheduledNow(title, description, privacy) {
+    async function startScheduledNow(groupId, title, description, privacy) {
         const response = await fetch('/api/start-now', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({title, description, privacy})
+            body: JSON.stringify({title, description, privacy, group_id: groupId})
         });
         const result = await response.json();
         if (result.success) {
@@ -939,14 +1156,25 @@
     }
 
     // Función global para editar programación
-    window.editSchedule = function (groupKey, title, description, privacy, startTime, endTime, daysArray) {
-        console.log("Editando:", {groupKey, title, description, privacy, startTime, endTime, daysArray});
+    window.editSchedule = function (groupKey, title, description, privacy, startTime, endTime, daysArray, thumbnailUrl) {
+        console.log("Editando:", {groupKey, title, description, privacy, startTime, endTime, daysArray, thumbnailUrl});
 
         // Llenar el formulario del modal
         document.getElementById('edit_group_key').value = groupKey;
         document.getElementById('edit_title').value = title;
         document.getElementById('edit_description').value = description || '';
         document.getElementById('edit_privacy').value = privacy;
+        
+        // Manejar miniatura
+        editUploadedThumbnailDataUrl = null;
+        if (thumbnailUrl && thumbnailUrl.startsWith('data:image')) {
+            editUploadedThumbnailDataUrl = thumbnailUrl;
+            document.getElementById('edit_thumbnail_url').value = '';
+            showEditThumbnailPreview(thumbnailUrl);
+        } else {
+            document.getElementById('edit_thumbnail_url').value = thumbnailUrl || '';
+            hideEditThumbnailPreview();
+        }
 
         // Parsear horas
         let startHour = '20', startMinute = '00';
@@ -994,12 +1222,18 @@
         e.preventDefault();
 
         const selectedDays = Array.from(document.querySelectorAll('#edit_days_container input:checked')).map(cb => cb.value);
+        
+        // Usar la miniatura subida o la URL
+        const thumbnailUrl = editUploadedThumbnailDataUrl || document.getElementById('edit_thumbnail_url').value || null;
 
         const data = {
             group_key: document.getElementById('edit_group_key').value,
             title: document.getElementById('edit_title').value,
             description: document.getElementById('edit_description').value,
             privacy: document.getElementById('edit_privacy').value,
+            thumbnail_url: thumbnailUrl,
+            made_for_kids: document.getElementById('edit_made_for_kids').value === 'true',
+            delete_after: document.getElementById('edit_delete_after').value,
             start_hour: document.getElementById('edit_start_hour').value,
             start_minute: document.getElementById('edit_start_minute').value,
             end_hour: document.getElementById('edit_end_hour').value,
@@ -1086,11 +1320,123 @@
         if (event.target === modal) closeModal();
     };
 
+    // Toggle dropdown menus
+    function toggleDropdown(event, dropdownId) {
+        event.stopPropagation();
+        const dropdown = document.getElementById(dropdownId);
+        // Cerrar todos los demás dropdowns
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            if (menu.id !== dropdownId) menu.classList.remove('show');
+        });
+        dropdown.classList.toggle('show');
+    }
+
+    // Cerrar dropdowns al hacer clic fuera
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    });
+
+    // Copiar URL del stream
+    function copyStreamUrl(url) {
+        if (!url) {
+            showMessage('❌ No hay URL disponible', 'error');
+            return;
+        }
+        navigator.clipboard.writeText(url);
+        showMessage('✅ URL copiada al portapapeles', 'success');
+    }
+    
+    // Manejo de miniaturas - Formulario principal
+    document.getElementById('thumbnail_file').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                uploadedThumbnailDataUrl = event.target.result;
+                showThumbnailPreview(uploadedThumbnailDataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    document.getElementById('thumbnail_url').addEventListener('input', function() {
+        if (this.value && !uploadedThumbnailDataUrl) {
+            showThumbnailPreview(this.value);
+        } else if (!this.value && uploadedThumbnailDataUrl) {
+            // Mantener la vista previa si hay archivo subido
+        } else {
+            hideThumbnailPreview();
+        }
+    });
+    
+    function showThumbnailPreview(src) {
+        const preview = document.getElementById('thumbnail_preview');
+        const img = document.getElementById('preview_image');
+        img.src = src;
+        preview.style.display = 'block';
+    }
+    
+    function hideThumbnailPreview() {
+        document.getElementById('thumbnail_preview').style.display = 'none';
+    }
+    
+    function clearThumbnail() {
+        uploadedThumbnailDataUrl = null;
+        document.getElementById('thumbnail_url').value = '';
+        document.getElementById('thumbnail_file').value = '';
+        hideThumbnailPreview();
+    }
+    
+    // Manejo de miniaturas - Formulario de edición
+    document.getElementById('edit_thumbnail_file').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                editUploadedThumbnailDataUrl = event.target.result;
+                showEditThumbnailPreview(editUploadedThumbnailDataUrl);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    document.getElementById('edit_thumbnail_url').addEventListener('input', function() {
+        if (this.value && !editUploadedThumbnailDataUrl) {
+            showEditThumbnailPreview(this.value);
+        } else if (!this.value && editUploadedThumbnailDataUrl) {
+            // Mantener la vista previa si hay archivo subido
+        } else {
+            hideEditThumbnailPreview();
+        }
+    });
+    
+    function showEditThumbnailPreview(src) {
+        const preview = document.getElementById('edit_thumbnail_preview');
+        const img = document.getElementById('edit_preview_image');
+        img.src = src;
+        preview.style.display = 'block';
+    }
+    
+    function hideEditThumbnailPreview() {
+        document.getElementById('edit_thumbnail_preview').style.display = 'none';
+    }
+    
+    function clearEditThumbnail() {
+        editUploadedThumbnailDataUrl = null;
+        document.getElementById('edit_thumbnail_url').value = '';
+        document.getElementById('edit_thumbnail_file').value = '';
+        hideEditThumbnailPreview();
+    }
+
     // Verificar que las funciones estén disponibles globalmente
     console.log("Funciones disponibles:", {
         editSchedule: typeof window.editSchedule,
         deleteScheduleGroup: typeof window.deleteScheduleGroup,
-        startScheduledNow: typeof window.startScheduledNow
+        startScheduledNow: typeof window.startScheduledNow,
+        toggleDropdown: typeof toggleDropdown,
+        copyStreamUrl: typeof copyStreamUrl
     });
 
     // Crear programa
