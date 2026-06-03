@@ -484,7 +484,7 @@ class LiveScheduler:
             # 1. Obtener información del grupo existente
             existing_jobs = []
             program_id = None
-            existing_broadcast_ids = []  # Guardar los broadcast IDs existentes para reutilizarlos
+            existing_broadcast_ids = {}  # Diccionario para mapear día -> broadcast_id existente
 
             for job_id, info in list(self.scheduled_jobs.items()):
                 if info.get('group_key') == group_key:
@@ -494,9 +494,11 @@ class LiveScheduler:
                     })
                     if not program_id:
                         program_id = info.get('program_id')
-                    # Recopilar broadcast_id de las tareas de inicio
+                    # Recopilar broadcast_id de las tareas de inicio, mapeados por día
                     if info.get('type') == 'start' and info.get('broadcast_id'):
-                        existing_broadcast_ids.append(info.get('broadcast_id'))
+                        day = info.get('day')
+                        if day is not None:
+                            existing_broadcast_ids[day] = info.get('broadcast_id')
 
             if not existing_jobs:
                 return {'success': False, 'error': 'Grupo no encontrado'}
@@ -508,35 +510,36 @@ class LiveScheduler:
             # 3. Crear nuevas tareas con los nuevos parámetros
             base_job_id = f"live_{datetime.now().timestamp()}"
             scheduled_days = []
-            
-            # Usar el primer broadcast_id existente si está disponible (para reutilizarlo)
-            reused_broadcast_id = existing_broadcast_ids[0] if existing_broadcast_ids else None
-            
-            # Si tenemos un broadcast existente, actualizar sus metadatos en YouTube
-            if reused_broadcast_id and (new_title or new_description or new_privacy):
-                print(f"📝 Actualizando metadatos del broadcast existente: {reused_broadcast_id}")
-                try:
-                    self.youtube.update_live_metadata(reused_broadcast_id, new_title, new_description)
-                    # Actualizar privacidad si es necesario
-                    if new_privacy:
-                        self.youtube.service.liveBroadcasts().update(
-                            part='status',
-                            body={
-                                'id': reused_broadcast_id,
-                                'status': {'privacyStatus': new_privacy}
-                            }
-                        ).execute()
-                    print(f"✅ Metadatos actualizados correctamente")
-                except Exception as e:
-                    print(f"⚠️ Error actualizando metadatos: {e}")
 
             for day_key in new_selected_days:
                 if day_key not in DAYS:
                     continue
 
                 job_id = f"{base_job_id}_{day_key}"
+                day_num = DAYS[day_key]
 
-                # Programar inicio - REUTILIZAR el broadcast_id existente
+                # Verificar si hay un broadcast existente para este día específico
+                reused_broadcast_id = existing_broadcast_ids.get(day_num)
+
+                # Si tenemos un broadcast existente para este día, actualizar sus metadatos en YouTube
+                if reused_broadcast_id and (new_title or new_description or new_privacy):
+                    print(f"📝 Actualizando metadatos del broadcast existente para {day_key}: {reused_broadcast_id}")
+                    try:
+                        self.youtube.update_live_metadata(reused_broadcast_id, new_title, new_description)
+                        # Actualizar privacidad si es necesario
+                        if new_privacy:
+                            self.youtube.service.liveBroadcasts().update(
+                                part='status',
+                                body={
+                                    'id': reused_broadcast_id,
+                                    'status': {'privacyStatus': new_privacy}
+                                }
+                            ).execute()
+                        print(f"✅ Metadatos actualizados correctamente para {day_key}")
+                    except Exception as e:
+                        print(f"⚠️ Error actualizando metadatos para {day_key}: {e}")
+
+                # Programar inicio - REUTILIZAR el broadcast_id existente si corresponde a este día
                 self.schedule_live(
                     job_id=f"{job_id}_start",
                     day_of_week=DAYS[day_key],
@@ -551,7 +554,7 @@ class LiveScheduler:
                     thumbnail_url=new_thumbnail_url,
                     delete_after=new_delete_after,
                     start_offset_minutes=new_start_offset_minutes,
-                    existing_broadcast_id=reused_broadcast_id  # ← NUEVO: pasar broadcast existente
+                    existing_broadcast_id=reused_broadcast_id  # ← Pasar broadcast existente solo si corresponde a este día
                 )
 
                 # Programar fin

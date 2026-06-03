@@ -158,7 +158,9 @@ def schedule_live():
         if day_key not in DAYS:
             continue
         job_id = f"{base_job_id}_{day_key}"
-
+        
+        # Calcular la hora real de inicio con el offset aplicado para este día específico
+        # Esto asegura que cada día tenga su propio evento programado en YouTube
         scheduler.schedule_live(
             job_id=f"{job_id}_start",
             day_of_week=DAYS[day_key],
