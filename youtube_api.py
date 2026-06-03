@@ -327,7 +327,7 @@ class YouTubeLiveManager:
         return build('youtube', 'v3', credentials=credentials)
 
     def create_scheduled_live(self, title, description, start_time, privacy_status='unlisted', program_id=None,
-                              is_immediate=False, made_for_kids=False):
+                              is_immediate=False, made_for_kids=False, thumbnail_url=None, delete_after='never'):
         try:
             if not program_id or program_id not in self.programs:
                 return {'success': False, 'error': 'Programa no válido'}
@@ -397,6 +397,23 @@ class YouTubeLiveManager:
 
             logger.info(f"Broadcast vinculado al stream: {stream_id}")
 
+            # Subir miniatura si se proporciona
+            thumbnail_uploaded = False
+            if thumbnail_url and thumbnail_url.startswith('data:image'):
+                try:
+                    thumbnail_uploaded = self._upload_thumbnail(broadcast['id'], thumbnail_url)
+                    logger.info(f"Miniatura {'subida' if thumbnail_uploaded else 'falló'} para broadcast: {broadcast['id']}")
+                except Exception as e:
+                    logger.error(f"Error subiendo miniatura: {e}")
+
+            # Configurar eliminación automática si corresponde
+            if delete_after and delete_after != 'never':
+                try:
+                    self._schedule_video_deletion(broadcast['id'], delete_after)
+                    logger.info(f"Eliminación programada para {delete_after} en broadcast: {broadcast['id']}")
+                except Exception as e:
+                    logger.error(f"Error programando eliminación: {e}")
+
             self._clear_cache('live_broadcasts')
 
             return {
@@ -405,7 +422,9 @@ class YouTubeLiveManager:
                 'stream_key': stream_key,
                 'stream_url': stream_url,
                 'title': title,
-                'start_time': formatted_start_time if not is_immediate else datetime.now().isoformat()
+                'start_time': formatted_start_time if not is_immediate else datetime.now().isoformat(),
+                'thumbnail_uploaded': thumbnail_uploaded,
+                'delete_after': delete_after
             }
         except HttpError as e:
             error_msg = str(e)
@@ -487,3 +506,89 @@ class YouTubeLiveManager:
                     return cached
             logger.error(f"Error: {e}")
             raise
+
+    def _upload_thumbnail(self, broadcast_id, thumbnail_data_url):
+        """Subir miniatura desde Data URL (Base64) a YouTube"""
+        try:
+            import base64
+            import io
+            from PIL import Image
+            
+            # Extraer datos Base64 de la URL
+            header, encoded = thumbnail_data_url.split(',', 1)
+            image_data = base64.b64decode(encoded)
+            
+            # Crear archivo temporal para la imagen
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.jpg', delete=False) as tmp_file:
+                # Convertir y guardar imagen (asegurar formato JPG)
+                img = Image.open(io.BytesIO(image_data))
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                img.save(tmp_file.name, 'JPEG', quality=95)
+                tmp_path = tmp_file.name
+            
+            try:
+                # Subir miniatura usando API de YouTube
+                upload = MediaFileUpload(tmp_path, mimetype='image/jpeg', resumable=True)
+                self.service.thumbnails().set(
+                    videoId=broadcast_id,
+                    media_body=upload
+                ).execute()
+                
+                return True
+            finally:
+                # Limpiar archivo temporal
+                import os
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+                    
+        except Exception as e:
+            logger.error(f"Error subiendo miniatura: {e}")
+            return False
+
+    def _schedule_video_deletion(self, broadcast_id, delete_after):
+        """Programar eliminación del video después de X tiempo post-transmisión"""
+        try:
+            # Obtener información del broadcast para encontrar el video asociado
+            broadcast = self.service.liveBroadcasts().list(
+                part='snippet,contentDetails,status',
+                id=broadcast_id
+            ).execute()
+            
+            if not broadcast.get('items'):
+                logger.warning(f"No se encontró broadcast con ID {broadcast_id}")
+                return False
+            
+            broadcast_info = broadcast['items'][0]
+            
+            # Nota: La eliminación automática requiere lógica adicional post-transmisión
+            # Aquí solo registramos la intención. La ejecución real debería hacerse
+            # vía scheduler o webhook cuando termine el live.
+            logger.info(f"Eliminación programada: {delete_after} para broadcast {broadcast_id}")
+            
+            # Guardar metadatos de eliminación en archivo local para procesamiento posterior
+            deletion_config_file = 'deletion_schedule.json'
+            deletion_jobs = {}
+            
+            if os.path.exists(deletion_config_file):
+                try:
+                    with open(deletion_config_file, 'r', encoding='utf-8') as f:
+                        deletion_jobs = json.load(f)
+                except:
+                    deletion_jobs = {}
+            
+            deletion_jobs[broadcast_id] = {
+                'delete_after': delete_after,
+                'scheduled_at': datetime.now().isoformat(),
+                'status': 'pending'
+            }
+            
+            with open(deletion_config_file, 'w', encoding='utf-8') as f:
+                json.dump(deletion_jobs, f, indent=2, ensure_ascii=False)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error programando eliminación: {e}")
+            return False
