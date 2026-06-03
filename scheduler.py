@@ -120,7 +120,7 @@ class LiveScheduler:
     def schedule_live(self, job_id, day_of_week, hour, minute,
                       title, description, privacy_status='unlisted',
                       is_start=True, program_id=None, made_for_kids=False,
-                      thumbnail_url=None, delete_after='never'):
+                      thumbnail_url=None, delete_after='never', start_offset_minutes=0):
 
         trigger = CronTrigger(
             day_of_week=day_of_week,
@@ -140,17 +140,25 @@ class LiveScheduler:
         print(f"   Programa: {program_id}")
         print(f"   Thumbnail: {thumbnail_url or 'No especificada'}")
         print(f"   Eliminar después: {delete_after}")
+        print(f"   Anticipar inicio: {start_offset_minutes} minutos")
 
         next_run = trigger.get_next_fire_time(None, datetime.now(self.timezone))
 
         # CREAR EL BROADCAST AHORA cuando se programa (solo para inicio)
         broadcast_id = None
         if is_start and next_run:
+            # Aplicar offset si existe (para anticipar o retrasar)
+            actual_start_time = next_run
+            if start_offset_minutes != 0:
+                from datetime import timedelta
+                actual_start_time = next_run + timedelta(minutes=start_offset_minutes)
+                print(f"   ⏱️ Hora real de inicio (con offset): {actual_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            
             print(f"📡 Creando broadcast programado en YouTube...")
             result = self.youtube.create_scheduled_live(
                 title=title,
                 description=description,
-                start_time=next_run,  # Usar la hora de próxima ejecución
+                start_time=actual_start_time,  # Usar la hora con offset aplicado
                 privacy_status=privacy_status,
                 program_id=program_id,
                 is_immediate=False,
@@ -187,9 +195,10 @@ class LiveScheduler:
                 'broadcast_id': broadcast_id,  # ← GUARDAR broadcast_id
                 'group_key': f"{program_id}|{title}",
                 'next_run': next_run,
-                'thumbnail_url': thumbnail_url,
+                'thumbnail_url': thumbnail_url,  # ← GUARDAR thumbnail_url
                 'delete_after': delete_after,
-                'made_for_kids': made_for_kids
+                'made_for_kids': made_for_kids,
+                'start_offset_minutes': start_offset_minutes  # ← GUARDAR offset
             }
         else:
             job = self.scheduler.add_job(
@@ -209,9 +218,10 @@ class LiveScheduler:
                 'program_id': program_id,
                 'group_key': f"{program_id}|{title}",
                 'next_run': next_run,
-                'thumbnail_url': thumbnail_url,
+                'thumbnail_url': thumbnail_url,  # ← GUARDAR thumbnail_url también en end
                 'delete_after': delete_after,
-                'made_for_kids': made_for_kids
+                'made_for_kids': made_for_kids,
+                'start_offset_minutes': start_offset_minutes
             }
 
         print(f"✅ Tarea programada correctamente")
@@ -428,7 +438,7 @@ class LiveScheduler:
     def update_schedule_group(self, group_key, new_title, new_description, new_privacy,
                               new_start_hour, new_start_minute, new_end_hour, new_end_minute,
                               new_selected_days, new_thumbnail_url=None, new_made_for_kids=False,
-                              new_delete_after='never'):
+                              new_delete_after='never', new_start_offset_minutes=0):
         """Actualizar todas las programaciones de un grupo"""
         try:
             # 1. Obtener información del grupo existente
@@ -474,7 +484,8 @@ class LiveScheduler:
                     program_id=program_id,
                     made_for_kids=new_made_for_kids,
                     thumbnail_url=new_thumbnail_url,
-                    delete_after=new_delete_after
+                    delete_after=new_delete_after,
+                    start_offset_minutes=new_start_offset_minutes
                 )
 
                 # Programar fin
@@ -487,7 +498,10 @@ class LiveScheduler:
                     description=new_description,
                     privacy_status=new_privacy,
                     is_start=False,
-                    program_id=program_id
+                    program_id=program_id,
+                    thumbnail_url=new_thumbnail_url,
+                    delete_after=new_delete_after,
+                    start_offset_minutes=new_start_offset_minutes
                 )
 
                 scheduled_days.append(day_key)
@@ -548,7 +562,8 @@ class LiveScheduler:
                     'end_time': None,
                     'day_count': 0,
                     'next_run': None,
-                    'thumbnail_url': None
+                    'thumbnail_url': info.get('thumbnail_url'),  # ← USAR thumbnail_url guardado
+                    'broadcast_id': info.get('broadcast_id')  # ← GUARDAR broadcast_id para miniatura real
                 }
 
             day_name = self._get_day_name(info.get('day', 0))
@@ -564,13 +579,19 @@ class LiveScheduler:
 
             groups[group_key]['day_count'] = len(groups[group_key]['days'])
 
-        # Generar URL de miniatura basada en el título (usando placeholder por ahora)
+        # Generar URL de miniatura basada en broadcast_id o thumbnail_url guardado
         for group in groups.values():
-            # En una implementación real, se podría obtener la miniatura de YouTube API
-            # Por ahora usamos un placeholder con el título codificado
-            import urllib.parse
-            encoded_title = urllib.parse.quote(group['title'])
-            group['thumbnail_url'] = f"https://img.youtube.com/vi/search?q={encoded_title}/hqdefault.jpg"
+            # Si hay broadcast_id, usar miniatura real de YouTube
+            if group.get('broadcast_id'):
+                group['thumbnail_url'] = f"https://img.youtube.com/vi/{group['broadcast_id']}/hqdefault.jpg"
+            # Si no hay broadcast_id pero hay thumbnail_url guardado, usar ese
+            elif group.get('thumbnail_url'):
+                pass  # Ya está asignado
+            # Si no hay ninguno, usar placeholder
+            else:
+                import urllib.parse
+                encoded_title = urllib.parse.quote(group['title'])
+                group['thumbnail_url'] = f"https://img.youtube.com/vi/search?q={encoded_title}/hqdefault.jpg"
 
         result = list(groups.values())
         result.sort(key=lambda x: x['title'])
