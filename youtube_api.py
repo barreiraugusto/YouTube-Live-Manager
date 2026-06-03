@@ -33,6 +33,11 @@ class YouTubeLiveManager:
         self.cache = {}
         self.cache_time = {}
         self.service = self.authenticate()
+        
+        # Configuración de carpeta para miniaturas subidas
+        import os
+        self.upload_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'thumbnails')
+        os.makedirs(self.upload_folder, exist_ok=True)
 
         # Configuración OBS
         self.obs_ws = None
