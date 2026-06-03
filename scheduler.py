@@ -401,7 +401,18 @@ class LiveScheduler:
             traceback.print_exc()
 
     def get_active_streams(self):
-        return list(self.active_streams.values())
+        streams = []
+        for stream in self.active_streams.values():
+            # Agregar URL de miniatura y stream_url si están disponibles
+            broadcast_id = stream.get('broadcast_id', '')
+            if broadcast_id:
+                stream['thumbnail_url'] = f"https://img.youtube.com/vi/{broadcast_id}/hqdefault.jpg"
+                stream['stream_url'] = f"https://www.youtube.com/watch?v={broadcast_id}"
+            else:
+                stream['thumbnail_url'] = None
+                stream['stream_url'] = None
+            streams.append(stream)
+        return streams
 
     def update_schedule_group(self, group_key, new_title, new_description, new_privacy,
                               new_start_hour, new_start_minute, new_end_hour, new_end_minute,
@@ -513,13 +524,16 @@ class LiveScheduler:
                 groups[group_key] = {
                     'id': group_key,
                     'title': info['title'],
+                    'description': info.get('description', ''),
+                    'privacy': info.get('privacy_status', 'unlisted'),
                     'program_id': info.get('program_id', ''),
                     'program_name': programs.get(info.get('program_id', ''), 'Sin programa'),
                     'days': [],
                     'start_time': None,
                     'end_time': None,
                     'day_count': 0,
-                    'next_run': None
+                    'next_run': None,
+                    'thumbnail_url': None
                 }
 
             day_name = self._get_day_name(info.get('day', 0))
@@ -534,6 +548,14 @@ class LiveScheduler:
                 groups[group_key]['end_time'] = time_str
 
             groups[group_key]['day_count'] = len(groups[group_key]['days'])
+
+        # Generar URL de miniatura basada en el título (usando placeholder por ahora)
+        for group in groups.values():
+            # En una implementación real, se podría obtener la miniatura de YouTube API
+            # Por ahora usamos un placeholder con el título codificado
+            import urllib.parse
+            encoded_title = urllib.parse.quote(group['title'])
+            group['thumbnail_url'] = f"https://img.youtube.com/vi/search?q={encoded_title}/hqdefault.jpg"
 
         result = list(groups.values())
         result.sort(key=lambda x: x['title'])

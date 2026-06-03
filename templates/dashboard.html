@@ -163,10 +163,40 @@
             margin-bottom: 15px;
             border: 1px solid var(--gray-300);
             transition: all 0.2s;
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
         }
 
         .schedule-card:hover {
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .schedule-thumbnail {
+            width: 160px;
+            height: 90px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        .schedule-thumbnail-placeholder {
+            width: 160px;
+            height: 90px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .schedule-content {
+            flex: 1;
+            min-width: 0;
         }
 
         .schedule-header {
@@ -251,6 +281,23 @@
             padding: 15px;
             margin-bottom: 15px;
             border-left: 4px solid var(--danger);
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .active-stream-thumbnail {
+            width: 160px;
+            height: 90px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: var(--gray-200);
+            flex-shrink: 0;
+        }
+
+        .active-stream-content {
+            flex: 1;
+            min-width: 0;
         }
 
         .live-badge {
@@ -375,6 +422,72 @@
             background: #2980b9;
         }
 
+        .btn-icon {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+        }
+
+        /* Dropdown menu */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background: white;
+            min-width: 180px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 8px;
+            z-index: 100;
+            margin-top: 5px;
+            border: 1px solid var(--gray-300);
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-menu button {
+            width: 100%;
+            text-align: left;
+            padding: 10px 15px;
+            background: none;
+            color: var(--gray-800);
+            border: none;
+            border-radius: 0;
+        }
+
+        .dropdown-menu button:first-child {
+            border-radius: 8px 8px 0 0;
+        }
+
+        .dropdown-menu button:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+
+        .dropdown-menu button:hover {
+            background: var(--gray-100);
+        }
+
+        .dropdown-menu button.btn-danger {
+            color: var(--danger);
+        }
+
+        .dropdown-menu button.btn-danger:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .dropdown-toggle::after {
+            content: '▼';
+            font-size: 0.7rem;
+            margin-left: 5px;
+        }
+
         /* Alertas */
         .alert {
             padding: 12px 15px;
@@ -478,6 +591,10 @@
             overflow-y: auto;
         }
 
+        .modal-content.wide {
+            max-width: 700px;
+        }
+
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -499,6 +616,15 @@
             color: var(--gray-800);
         }
 
+        .modal-footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--gray-300);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
         @media (max-width: 768px) {
             .time-row {
                 grid-template-columns: 1fr;
@@ -510,6 +636,16 @@
 
             .schedule-header {
                 flex-direction: column;
+            }
+
+            .schedule-card, .active-stream-card {
+                flex-direction: column;
+            }
+
+            .schedule-thumbnail, .active-stream-thumbnail,
+            .schedule-thumbnail-placeholder {
+                width: 100%;
+                height: 120px;
             }
         }
     </style>
@@ -547,17 +683,28 @@
         <h2>🔴 TRANSMISIONES EN VIVO</h2>
         {% for stream in active_streams %}
         <div class="active-stream-card">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                <div>
-                    <span class="live-badge">🔴 EN VIVO</span>
-                    <strong style="margin-left: 10px;">{{ stream.title }}</strong>
+            <img src="{{ stream.thumbnail_url or 'https://img.youtube.com/vi/default/hqdefault.jpg' }}" 
+                 alt="Miniatura" class="active-stream-thumbnail" 
+                 onerror="this.src='https://img.youtube.com/vi/default/hqdefault.jpg'">
+            <div class="active-stream-content">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <span class="live-badge">🔴 EN VIVO</span>
+                        <strong style="margin-left: 10px;">{{ stream.title }}</strong>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn-icon dropdown-toggle" onclick="toggleDropdown(event, 'stream-actions-{{ loop.index }}')">
+                            Acciones
+                        </button>
+                        <div id="stream-actions-{{ loop.index }}" class="dropdown-menu">
+                            <button onclick="copyStreamUrl('{{ stream.stream_url or '' }}')">📋 Copiar URL</button>
+                            <button class="btn-danger" onclick="stopLiveNow('{{ stream.broadcast_id }}')">⏹️ Detener transmisión</button>
+                        </div>
+                    </div>
                 </div>
-                <button class="btn-danger" onclick="stopLiveNow('{{ stream.broadcast_id }}')">
-                    ⏹️ Detener transmisión
-                </button>
-            </div>
-            <div style="margin-top: 10px; font-size: 0.8rem; color: var(--gray-600);">
-                📅 Iniciado: {{ stream.start_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                <div style="margin-top: 10px; font-size: 0.8rem; color: var(--gray-600);">
+                    📅 Iniciado: {{ stream.start_time.strftime('%Y-%m-%d %H:%M:%S') }}
+                </div>
             </div>
         </div>
         {% endfor %}
@@ -651,38 +798,37 @@
             {% if scheduled and scheduled|length > 0 %}
             {% for group in scheduled %}
             <div class="schedule-card" data-group-key="{{ group.id }}">
-                <div class="schedule-header">
-                    <div class="schedule-title">{{ group.title }}</div>
-                    <div style="display: flex; gap: 10px;">
-                        <span class="schedule-badge" style="background: var(--info);">{{ group.program_name }}</span>
-                        <span class="schedule-badge">{{ group.day_count }} día{% if group.day_count != 1 %}s{% endif %}</span>
+                <img src="{{ group.thumbnail_url or 'https://img.youtube.com/vi/default/hqdefault.jpg' }}" 
+                     alt="Miniatura" class="schedule-thumbnail" 
+                     onerror="this.src='https://img.youtube.com/vi/default/hqdefault.jpg'">
+                <div class="schedule-content">
+                    <div class="schedule-header">
+                        <div class="schedule-title">{{ group.title }}</div>
+                        <div style="display: flex; gap: 10px;">
+                            <span class="schedule-badge" style="background: var(--info);">{{ group.program_name }}</span>
+                            <span class="schedule-badge">{{ group.day_count }} día{% if group.day_count != 1 %}s{% endif %}</span>
+                        </div>
                     </div>
-                </div>
-                <div class="days-container">
-                    {% for day in group.days %}
-                    <span class="day-chip">{{ day }}</span>
-                    {% endfor %}
-                </div>
-                <div class="schedule-times">
-                    <div>🟢 <span class="time-start">Inicio: {{ group.start_time }}</span></div>
-                    <div>🔴 <span class="time-end">Fin: {{ group.end_time }}</span></div>
-                </div>
-                <div class="next-run">📅 Próxima: {{ group.next_run if group.next_run else 'Por definir' }}</div>
-                <div class="schedule-actions">
-                    <button class="btn-edit" onclick='editSchedule("{{ group.id }}", "{{ group.title|replace('
-                    "', '\\"')|replace("'", "\\'") }}", "{{ group.description|replace('"', '\\"')|replace("'", "\\'")
-                    }}", "{{ group.privacy }}", "{{ group.start_time }}", "{{ group.end_time }}", {{ group.days|tojson
-                    }})'>
-                    ✏️ Editar
-                    </button>
-                    <button class="btn-danger" onclick="deleteScheduleGroup('{{ group.id }}')">
-                        🗑️ Eliminar
-                    </button>
-                    <button class="btn-success" onclick='startScheduledNow("{{ group.title|replace('
-                    "', '\\"')|replace("'", "\\'") }}", "{{ group.description|replace('"', '\\"')|replace("'", "\\'")
-                    }}", "{{ group.privacy }}")'>
-                    ▶️ Iniciar ahora
-                    </button>
+                    <div class="days-container">
+                        {% for day in group.days %}
+                        <span class="day-chip">{{ day }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="schedule-times">
+                        <div>🟢 <span class="time-start">Inicio: {{ group.start_time }}</span></div>
+                        <div>🔴 <span class="time-end">Fin: {{ group.end_time }}</span></div>
+                    </div>
+                    <div class="next-run">📅 Próxima: {{ group.next_run if group.next_run else 'Por definir' }}</div>
+                    <div class="schedule-actions">
+                        <button class="btn-icon dropdown-toggle" onclick="toggleDropdown(event, 'schedule-actions-{{ loop.index }}')">
+                            Acciones
+                        </button>
+                        <div id="schedule-actions-{{ loop.index }}" class="dropdown-menu">
+                            <button class="btn-edit" onclick='editSchedule("{{ group.id }}", "{{ group.title|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.description|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.privacy }}", "{{ group.start_time }}", "{{ group.end_time }}", {{ group.days|tojson }})'>✏️ Editar</button>
+                            <button class="btn-success" onclick='startScheduledNow("{{ group.title|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.description|replace('"', '\\\\"')|replace("'", "\\\\'") }}", "{{ group.privacy }}")'>▶️ Iniciar ahora</button>
+                            <button class="btn-danger" onclick="deleteScheduleGroup('{{ group.id }}')">🗑️ Eliminar</button>
+                        </div>
+                    </div>
                 </div>
             </div>
             {% endfor %}
@@ -1086,11 +1232,41 @@
         if (event.target === modal) closeModal();
     };
 
+    // Toggle dropdown menus
+    function toggleDropdown(event, dropdownId) {
+        event.stopPropagation();
+        const dropdown = document.getElementById(dropdownId);
+        // Cerrar todos los demás dropdowns
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            if (menu.id !== dropdownId) menu.classList.remove('show');
+        });
+        dropdown.classList.toggle('show');
+    }
+
+    // Cerrar dropdowns al hacer clic fuera
+    document.addEventListener('click', function() {
+        document.querySelectorAll('.dropdown-menu').forEach(menu => {
+            menu.classList.remove('show');
+        });
+    });
+
+    // Copiar URL del stream
+    function copyStreamUrl(url) {
+        if (!url) {
+            showMessage('❌ No hay URL disponible', 'error');
+            return;
+        }
+        navigator.clipboard.writeText(url);
+        showMessage('✅ URL copiada al portapapeles', 'success');
+    }
+
     // Verificar que las funciones estén disponibles globalmente
     console.log("Funciones disponibles:", {
         editSchedule: typeof window.editSchedule,
         deleteScheduleGroup: typeof window.deleteScheduleGroup,
-        startScheduledNow: typeof window.startScheduledNow
+        startScheduledNow: typeof window.startScheduledNow,
+        toggleDropdown: typeof toggleDropdown,
+        copyStreamUrl: typeof copyStreamUrl
     });
 
     // Crear programa

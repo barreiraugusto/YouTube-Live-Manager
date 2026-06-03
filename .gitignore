@@ -1,51 +1,42 @@
 ```
+# Compiled Python files
+*.pyc
+__pycache__/
+
+# Logs
+*.log
+
 # Environment variables
 .env
 .env.local
-.env.*
+*.env.*
 
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-.venv.bak/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
+# Coverage reports
 .coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-*.pot
-*.pyc
-*.pyo
-*.pyd
-.MF
-.tags*
-TAGS
-idconfig
-.idconfig
-.pytest_cache/
-.mypy_cache/
+coverage/
+htmlcov/
 
-# IDE
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+.mypy_cache/
+.pytest_cache/
+dist/
+build/
+target/
+.gradle/
+
+# Editors
 .vscode/
 .idea/
-
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
 ```
