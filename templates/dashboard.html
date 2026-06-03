@@ -1053,6 +1053,36 @@
     // Variables para almacenar las miniaturas subidas
     let uploadedThumbnailDataUrl = null;
     let editUploadedThumbnailDataUrl = null;
+    let uploadedThumbnailUrl = null;  // URL del servidor para la miniatura subida
+    let editUploadedThumbnailUrl = null;  // URL del servidor para la miniatura de edición
+
+    async function uploadThumbnailFile(file, isEdit = false) {
+        const formData = new FormData();
+        formData.append('thumbnail', file);
+        
+        try {
+            const response = await fetch('/api/upload-thumbnail', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                if (isEdit) {
+                    editUploadedThumbnailUrl = result.thumbnail_url;
+                } else {
+                    uploadedThumbnailUrl = result.thumbnail_url;
+                }
+                return result.thumbnail_url;
+            } else {
+                showMessage('❌ Error al subir miniatura: ' + result.error, 'error');
+                return null;
+            }
+        } catch (error) {
+            showMessage('❌ Error de conexión al subir miniatura', 'error');
+            return null;
+        }
+    }
 
     function showMessage(message, type = 'success') {
         const messagesDiv = document.getElementById('flash-messages');
@@ -1074,8 +1104,12 @@
             return;
         }
 
-        // Usar la miniatura subida
-        const thumbnailUrl = uploadedThumbnailDataUrl || null;
+        // Subir miniatura si se seleccionó un archivo
+        let thumbnailUrl = null;
+        const thumbnailFileInput = document.getElementById('thumbnail_file');
+        if (thumbnailFileInput.files && thumbnailFileInput.files[0]) {
+            thumbnailUrl = await uploadThumbnailFile(thumbnailFileInput.files[0], false);
+        }
         
         // Obtener offset de minutos para anticipar/retrasar inicio
         const startOffsetMinutes = parseInt(document.getElementById('start_offset_minutes').value) || 0;
@@ -1115,11 +1149,16 @@
         const title = document.getElementById('title').value;
         const description = document.getElementById('description').value;
         const privacy = document.getElementById('privacy').value;
-        // Usar la miniatura subida
-        const thumbnailUrl = uploadedThumbnailDataUrl || null;
         const delete_after = document.getElementById('delete_after').value;
         const program_id = document.getElementById('program_id').value;
         const made_for_kids = document.getElementById('made_for_kids').value === 'true';
+        
+        // Subir miniatura si se seleccionó un archivo
+        let thumbnailUrl = null;
+        const thumbnailFileInput = document.getElementById('thumbnail_file');
+        if (thumbnailFileInput.files && thumbnailFileInput.files[0]) {
+            thumbnailUrl = await uploadThumbnailFile(thumbnailFileInput.files[0], false);
+        }
 
         if (!title) {
             showMessage('❌ Ingresa un título para el live', 'error');
@@ -1239,8 +1278,12 @@
 
         const selectedDays = Array.from(document.querySelectorAll('#edit_days_container input:checked')).map(cb => cb.value);
         
-        // Usar la miniatura subida
-        const thumbnailUrl = editUploadedThumbnailDataUrl || null;
+        // Subir miniatura si se seleccionó un archivo nuevo
+        let thumbnailUrl = null;
+        const thumbnailFileInput = document.getElementById('edit_thumbnail_file');
+        if (thumbnailFileInput.files && thumbnailFileInput.files[0]) {
+            thumbnailUrl = await uploadThumbnailFile(thumbnailFileInput.files[0], true);
+        }
         
         // Obtener offset de minutos para anticipar/retrasar inicio (del formulario de edición si existe, o 0)
         const startOffsetMinutes = parseInt(document.getElementById('edit_start_offset_minutes')?.value) || 0;
