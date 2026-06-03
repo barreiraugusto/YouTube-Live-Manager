@@ -272,6 +272,7 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            position: relative;
         }
 
         /* Tarjeta de stream activo */
@@ -298,6 +299,7 @@
         .active-stream-content {
             flex: 1;
             min-width: 0;
+            position: relative;
         }
 
         .live-badge {
@@ -425,6 +427,7 @@
         .btn-icon {
             padding: 8px 12px;
             font-size: 0.8rem;
+            position: relative;
         }
 
         /* Dropdown menu */
@@ -442,7 +445,7 @@
             min-width: 180px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             border-radius: 8px;
-            z-index: 100;
+            z-index: 1000;
             margin-top: 5px;
             border: 1px solid var(--gray-300);
         }
