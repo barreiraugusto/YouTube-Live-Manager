@@ -1,10 +1,12 @@
-from flask import Flask, render_template, request, jsonify, flash
+from flask import Flask, render_template, request, jsonify, flash, send_from_directory
 from youtube_api import YouTubeLiveManager
 from scheduler import LiveScheduler
 from datetime import datetime
 import warnings
 import logging
 import os
+import base64
+import uuid
 
 warnings.filterwarnings('ignore', category=FutureWarning)
 
@@ -22,6 +24,11 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 # 🔒 CORRECCIÓN: Usar variable de entorno para secret_key
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', os.urandom(24).hex())
+
+# Configurar carpeta de uploads para miniaturas
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'uploads', 'thumbnails')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 youtube = YouTubeLiveManager()
 scheduler = LiveScheduler(youtube)
@@ -151,7 +158,9 @@ def schedule_live():
         if day_key not in DAYS:
             continue
         job_id = f"{base_job_id}_{day_key}"
-
+        
+        # Calcular la hora real de inicio con el offset aplicado para este día específico
+        # Esto asegura que cada día tenga su propio evento programado en YouTube
         scheduler.schedule_live(
             job_id=f"{job_id}_start",
             day_of_week=DAYS[day_key],
@@ -387,6 +396,35 @@ def scheduler_status():
         'current_time': datetime.now(scheduler.timezone).strftime('%Y-%m-%d %H:%M:%S'),
         'jobs': jobs_info
     })
+
+
+@app.route('/uploads/thumbnails/<filename>')
+def serve_thumbnail(filename):
+    """Servir miniaturas subidas"""
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
+@app.route('/api/upload-thumbnail', methods=['POST'])
+def upload_thumbnail():
+    """Subir miniatura como archivo y guardarla en el servidor"""
+    if 'thumbnail' not in request.files:
+        return jsonify({'success': False, 'error': 'No se encontró el archivo'}), 400
+    
+    file = request.files['thumbnail']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'Nombre de archivo vacío'}), 400
+    
+    # Generar nombre único para el archivo
+    unique_filename = f"{uuid.uuid4().hex}_{file.filename}"
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], unique_filename)
+    
+    # Guardar el archivo
+    file.save(filepath)
+    
+    # Devolver la URL relativa para acceder a la miniatura
+    thumbnail_url = f'/uploads/thumbnails/{unique_filename}'
+    
+    return jsonify({'success': True, 'thumbnail_url': thumbnail_url})
 
 
 if __name__ == '__main__':

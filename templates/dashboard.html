@@ -272,6 +272,7 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
+            position: relative;
         }
 
         /* Tarjeta de stream activo */
@@ -298,6 +299,7 @@
         .active-stream-content {
             flex: 1;
             min-width: 0;
+            position: relative;
         }
 
         .live-badge {
@@ -425,6 +427,7 @@
         .btn-icon {
             padding: 8px 12px;
             font-size: 0.8rem;
+            position: relative;
         }
 
         /* Dropdown menu */
@@ -442,7 +445,7 @@
             min-width: 180px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             border-radius: 8px;
-            z-index: 100;
+            z-index: 1000;
             margin-top: 5px;
             border: 1px solid var(--gray-300);
         }
@@ -781,16 +784,8 @@
 
             <div class="form-group">
                 <label>🖼️ Miniatura (opcional)</label>
-                <div style="display: flex; gap: 10px; align-items: flex-start;">
-                    <div style="flex: 1;">
-                        <input type="url" id="thumbnail_url" placeholder="https://ejemplo.com/mi-miniatura.jpg">
-                        <small style="color: var(--gray-600);">URL de imagen o sube un archivo</small>
-                    </div>
-                    <div style="flex: 1;">
-                        <input type="file" id="thumbnail_file" accept="image/*" style="padding: 8px;">
-                        <small style="color: var(--gray-600);">Subir desde tu PC</small>
-                    </div>
-                </div>
+                <input type="file" id="thumbnail_file" accept="image/*" style="padding: 8px;">
+                <small style="color: var(--gray-600);">Subir desde tu PC</small>
                 <div id="thumbnail_preview" style="margin-top: 10px; display: none;">
                     <img id="preview_image" src="" alt="Vista previa" style="max-width: 200px; max-height: 120px; border-radius: 8px; border: 1px solid var(--gray-300);">
                     <button type="button" class="btn-danger btn-icon" onclick="clearThumbnail()" style="margin-left: 10px;">🗑️ Quitar</button>
@@ -987,16 +982,8 @@
             </div>
             <div class="form-group">
                 <label>🖼️ Miniatura (opcional)</label>
-                <div style="display: flex; gap: 10px; align-items: flex-start;">
-                    <div style="flex: 1;">
-                        <input type="url" id="edit_thumbnail_url" placeholder="https://ejemplo.com/mi-miniatura.jpg">
-                        <small style="color: var(--gray-600);">URL de imagen o sube un archivo</small>
-                    </div>
-                    <div style="flex: 1;">
-                        <input type="file" id="edit_thumbnail_file" accept="image/*" style="padding: 8px;">
-                        <small style="color: var(--gray-600);">Subir desde tu PC</small>
-                    </div>
-                </div>
+                <input type="file" id="edit_thumbnail_file" accept="image/*" style="padding: 8px;">
+                <small style="color: var(--gray-600);">Subir desde tu PC</small>
                 <div id="edit_thumbnail_preview" style="margin-top: 10px; display: none;">
                     <img id="edit_preview_image" src="" alt="Vista previa" style="max-width: 200px; max-height: 120px; border-radius: 8px; border: 1px solid var(--gray-300);">
                     <button type="button" class="btn-danger btn-icon" onclick="clearEditThumbnail()" style="margin-left: 10px;">🗑️ Quitar</button>
@@ -1066,6 +1053,36 @@
     // Variables para almacenar las miniaturas subidas
     let uploadedThumbnailDataUrl = null;
     let editUploadedThumbnailDataUrl = null;
+    let uploadedThumbnailUrl = null;  // URL del servidor para la miniatura subida
+    let editUploadedThumbnailUrl = null;  // URL del servidor para la miniatura de edición
+
+    async function uploadThumbnailFile(file, isEdit = false) {
+        const formData = new FormData();
+        formData.append('thumbnail', file);
+        
+        try {
+            const response = await fetch('/api/upload-thumbnail', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                if (isEdit) {
+                    editUploadedThumbnailUrl = result.thumbnail_url;
+                } else {
+                    uploadedThumbnailUrl = result.thumbnail_url;
+                }
+                return result.thumbnail_url;
+            } else {
+                showMessage('❌ Error al subir miniatura: ' + result.error, 'error');
+                return null;
+            }
+        } catch (error) {
+            showMessage('❌ Error de conexión al subir miniatura', 'error');
+            return null;
+        }
+    }
 
     function showMessage(message, type = 'success') {
         const messagesDiv = document.getElementById('flash-messages');
@@ -1087,8 +1104,12 @@
             return;
         }
 
-        // Usar la miniatura subida o la URL
-        const thumbnailUrl = uploadedThumbnailDataUrl || document.getElementById('thumbnail_url').value || null;
+        // Subir miniatura si se seleccionó un archivo
+        let thumbnailUrl = null;
+        const thumbnailFileInput = document.getElementById('thumbnail_file');
+        if (thumbnailFileInput.files && thumbnailFileInput.files[0]) {
+            thumbnailUrl = await uploadThumbnailFile(thumbnailFileInput.files[0], false);
+        }
         
         // Obtener offset de minutos para anticipar/retrasar inicio
         const startOffsetMinutes = parseInt(document.getElementById('start_offset_minutes').value) || 0;
@@ -1128,11 +1149,16 @@
         const title = document.getElementById('title').value;
         const description = document.getElementById('description').value;
         const privacy = document.getElementById('privacy').value;
-        // Usar la miniatura subida o la URL
-        const thumbnailUrl = uploadedThumbnailDataUrl || document.getElementById('thumbnail_url').value || null;
         const delete_after = document.getElementById('delete_after').value;
         const program_id = document.getElementById('program_id').value;
         const made_for_kids = document.getElementById('made_for_kids').value === 'true';
+        
+        // Subir miniatura si se seleccionó un archivo
+        let thumbnailUrl = null;
+        const thumbnailFileInput = document.getElementById('thumbnail_file');
+        if (thumbnailFileInput.files && thumbnailFileInput.files[0]) {
+            thumbnailUrl = await uploadThumbnailFile(thumbnailFileInput.files[0], false);
+        }
 
         if (!title) {
             showMessage('❌ Ingresa un título para el live', 'error');
@@ -1200,10 +1226,8 @@
         editUploadedThumbnailDataUrl = null;
         if (thumbnailUrl && thumbnailUrl.startsWith('data:image')) {
             editUploadedThumbnailDataUrl = thumbnailUrl;
-            document.getElementById('edit_thumbnail_url').value = '';
             showEditThumbnailPreview(thumbnailUrl);
         } else {
-            document.getElementById('edit_thumbnail_url').value = thumbnailUrl || '';
             hideEditThumbnailPreview();
         }
 
@@ -1254,8 +1278,12 @@
 
         const selectedDays = Array.from(document.querySelectorAll('#edit_days_container input:checked')).map(cb => cb.value);
         
-        // Usar la miniatura subida o la URL
-        const thumbnailUrl = editUploadedThumbnailDataUrl || document.getElementById('edit_thumbnail_url').value || null;
+        // Subir miniatura si se seleccionó un archivo nuevo
+        let thumbnailUrl = null;
+        const thumbnailFileInput = document.getElementById('edit_thumbnail_file');
+        if (thumbnailFileInput.files && thumbnailFileInput.files[0]) {
+            thumbnailUrl = await uploadThumbnailFile(thumbnailFileInput.files[0], true);
+        }
         
         // Obtener offset de minutos para anticipar/retrasar inicio (del formulario de edición si existe, o 0)
         const startOffsetMinutes = parseInt(document.getElementById('edit_start_offset_minutes')?.value) || 0;
@@ -1396,16 +1424,6 @@
         }
     });
     
-    document.getElementById('thumbnail_url').addEventListener('input', function() {
-        if (this.value && !uploadedThumbnailDataUrl) {
-            showThumbnailPreview(this.value);
-        } else if (!this.value && uploadedThumbnailDataUrl) {
-            // Mantener la vista previa si hay archivo subido
-        } else {
-            hideThumbnailPreview();
-        }
-    });
-    
     function showThumbnailPreview(src) {
         const preview = document.getElementById('thumbnail_preview');
         const img = document.getElementById('preview_image');
@@ -1419,7 +1437,6 @@
     
     function clearThumbnail() {
         uploadedThumbnailDataUrl = null;
-        document.getElementById('thumbnail_url').value = '';
         document.getElementById('thumbnail_file').value = '';
         hideThumbnailPreview();
     }
@@ -1437,16 +1454,6 @@
         }
     });
     
-    document.getElementById('edit_thumbnail_url').addEventListener('input', function() {
-        if (this.value && !editUploadedThumbnailDataUrl) {
-            showEditThumbnailPreview(this.value);
-        } else if (!this.value && editUploadedThumbnailDataUrl) {
-            // Mantener la vista previa si hay archivo subido
-        } else {
-            hideEditThumbnailPreview();
-        }
-    });
-    
     function showEditThumbnailPreview(src) {
         const preview = document.getElementById('edit_thumbnail_preview');
         const img = document.getElementById('edit_preview_image');
@@ -1460,7 +1467,6 @@
     
     function clearEditThumbnail() {
         editUploadedThumbnailDataUrl = null;
-        document.getElementById('edit_thumbnail_url').value = '';
         document.getElementById('edit_thumbnail_file').value = '';
         hideEditThumbnailPreview();
     }
