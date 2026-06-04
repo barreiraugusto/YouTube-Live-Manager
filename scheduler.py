@@ -292,6 +292,8 @@ class LiveScheduler:
                 print("📡 Creando broadcast en YouTube en el momento de inicio...")
                 
                 # Calcular la hora real de inicio aplicando el offset
+                # El offset es negativo para anticipar, positivo para retrasar
+                # Ejemplo: si start_offset_minutes = -10, el stream inicia 10 min antes de la hora programada
                 actual_start_time = now
                 if start_offset_minutes != 0:
                     actual_start_time = now + timedelta(minutes=start_offset_minutes)
@@ -300,13 +302,15 @@ class LiveScheduler:
                 # Obtener información del programa para la miniatura
                 program = self.youtube.get_program(program_id)
                 
+                # Para inicio inmediato, pasamos is_immediate=False pero con la hora calculada
+                # Esto permite que YouTube programe el evento para dentro de unos minutos
                 result = self.youtube.create_scheduled_live(
                     title=title,
                     description=description,
                     start_time=actual_start_time,
                     privacy_status=privacy_status,
                     program_id=program_id,
-                    is_immediate=True,  # Inmediato porque estamos en el momento de ejecución
+                    is_immediate=False,  # Siempre programar con hora específica
                     made_for_kids=made_for_kids,
                     thumbnail_url=thumbnail_url,
                     delete_after=delete_after
