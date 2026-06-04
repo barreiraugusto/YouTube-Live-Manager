@@ -61,9 +61,11 @@ class LiveScheduler:
                     func=self._start_live_stream,
                     trigger=trigger,
                     id=job_id,
-                    # Le pasamos el broadcast_id que guardamos previamente
+                    # Le pasamos todos los argumentos necesarios incluyendo los nuevos
                     args=[item['title'], item.get('description', ''), item.get('privacy', 'unlisted'), job_id,
-                          item['program_id'], item.get('broadcast_id')],
+                          item['program_id'], item.get('broadcast_id'), item.get('thumbnail_url'),
+                          item.get('delete_after', 'never'), item.get('made_for_kids', False),
+                          item.get('start_offset_minutes', 0)],
                     replace_existing=True
                 )
             else:
@@ -88,7 +90,11 @@ class LiveScheduler:
                 'program_id': item['program_id'],
                 'broadcast_id': item.get('broadcast_id'),
                 'group_key': item['group_key'],
-                'next_run': next_run
+                'next_run': next_run,
+                'thumbnail_url': item.get('thumbnail_url'),
+                'delete_after': item.get('delete_after', 'never'),
+                'made_for_kids': item.get('made_for_kids', False),
+                'start_offset_minutes': item.get('start_offset_minutes', 0)
             }
         print(f"✅ Programaciones restauradas correctamente.")
 
@@ -108,7 +114,11 @@ class LiveScheduler:
                 'type': info['type'],
                 'program_id': info['program_id'],
                 'broadcast_id': info.get('broadcast_id'),
-                'group_key': info['group_key']
+                'group_key': info['group_key'],
+                'thumbnail_url': info.get('thumbnail_url'),
+                'delete_after': info.get('delete_after', 'never'),
+                'made_for_kids': info.get('made_for_kids', False),
+                'start_offset_minutes': info.get('start_offset_minutes', 0)
             })
 
         try:
@@ -147,37 +157,11 @@ class LiveScheduler:
 
         next_run = trigger.get_next_fire_time(None, datetime.now(self.timezone))
 
-        # CREAR EL BROADCAST AHORA cuando se programa (solo para inicio)
-        broadcast_id = existing_broadcast_id  # ← NUEVO: usar el broadcast existente si se proporciona
+        # NO CREAR EL BROADCAST AHORA - Se creará cuando se ejecute la tarea con el offset aplicado
+        broadcast_id = existing_broadcast_id if existing_broadcast_id else None
         
-        if is_start and next_run and not existing_broadcast_id:
-            # Aplicar offset si existe (para anticipar o retrasar)
-            actual_start_time = next_run
-            if start_offset_minutes != 0:
-                actual_start_time = next_run + timedelta(minutes=start_offset_minutes)
-                print(f"   ⏱️ Hora real de inicio (con offset): {actual_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            
-            print(f"📡 Creando broadcast programado en YouTube...")
-            result = self.youtube.create_scheduled_live(
-                title=title,
-                description=description,
-                start_time=actual_start_time,  # Usar la hora con offset aplicado
-                privacy_status=privacy_status,
-                program_id=program_id,
-                is_immediate=False,
-                made_for_kids=made_for_kids,
-                thumbnail_url=thumbnail_url,
-                delete_after=delete_after
-            )
-
-            if result.get('success'):
-                broadcast_id = result['broadcast_id']
-                print(f"✅ Broadcast creado: {broadcast_id}")
-            else:
-                print(f"❌ Error creando broadcast: {result.get('error')}")
-                return None
-        elif is_start and existing_broadcast_id:
-            # Si estamos reutilizando un broadcast existente, solo actualizar miniatura y delete_after si es necesario
+        if is_start and existing_broadcast_id:
+            # Si estamos reutilizando un broadcast existente (edición), actualizar metadatos
             print(f"♻️ Reutilizando broadcast existente: {existing_broadcast_id}")
             broadcast_id = existing_broadcast_id
             
@@ -213,13 +197,36 @@ class LiveScheduler:
                     print(f"✅ Eliminación programada actualizada")
                 except Exception as e:
                     print(f"⚠️ Error programando eliminación: {e}")
+            
+            # Actualizar metadatos (título, descripción)
+            if title or description:
+                try:
+                    self.youtube.update_live_metadata(broadcast_id, title, description)
+                    print(f"✅ Metadatos actualizados en broadcast existente")
+                except Exception as e:
+                    print(f"⚠️ Error actualizando metadatos: {e}")
+            
+            # Actualizar privacidad
+            if privacy_status:
+                try:
+                    self.youtube.service.liveBroadcasts().update(
+                        part='status',
+                        body={
+                            'id': broadcast_id,
+                            'status': {'privacyStatus': privacy_status}
+                        }
+                    ).execute()
+                    print(f"✅ Privacidad actualizada en broadcast existente")
+                except Exception as e:
+                    print(f"⚠️ Error actualizando privacidad: {e}")
 
         if is_start:
             job = self.scheduler.add_job(
                 func=self._start_live_stream,
                 trigger=trigger,
                 id=job_id,
-                args=[title, description, privacy_status, job_id, program_id, broadcast_id],  # ← AGREGAR broadcast_id
+                args=[title, description, privacy_status, job_id, program_id, broadcast_id, 
+                      thumbnail_url, delete_after, made_for_kids, start_offset_minutes],
                 replace_existing=True
             )
             self.scheduled_jobs[job_id] = {
@@ -232,7 +239,7 @@ class LiveScheduler:
                 'privacy': privacy_status,
                 'type': 'start',
                 'program_id': program_id,
-                'broadcast_id': broadcast_id,  # ← GUARDAR broadcast_id
+                'broadcast_id': broadcast_id,  # ← GUARDAR broadcast_id (puede ser None si es nuevo)
                 'group_key': f"{program_id}|{title}",
                 'next_run': next_run,
                 'thumbnail_url': thumbnail_url,  # ← GUARDAR thumbnail_url
@@ -269,7 +276,8 @@ class LiveScheduler:
         print(f"✅ Tarea programada y guardada correctamente")
         return job
 
-    def _start_live_stream(self, title, description, privacy_status, job_id, program_id, broadcast_id):
+    def _start_live_stream(self, title, description, privacy_status, job_id, program_id, broadcast_id,
+                           thumbnail_url=None, delete_after='never', made_for_kids=False, start_offset_minutes=0):
         """Ejecutar la tarea programada: iniciar el live"""
         try:
             now = datetime.now(self.timezone)
@@ -279,10 +287,43 @@ class LiveScheduler:
             print(f"📺 Título: {title}")
             print(f"{'=' * 70}\n")
 
+            # Si no hay broadcast_id, crear uno nuevo AHORA (en el momento de ejecución con el offset aplicado)
             if not broadcast_id:
-                print("❌ No se proporcionó broadcast_id")
-                return None
-
+                print("📡 Creando broadcast en YouTube en el momento de inicio...")
+                
+                # Calcular la hora real de inicio aplicando el offset
+                actual_start_time = now
+                if start_offset_minutes != 0:
+                    actual_start_time = now + timedelta(minutes=start_offset_minutes)
+                    print(f"   ⏱️ Hora real de inicio (con offset {start_offset_minutes} min): {actual_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+                
+                # Obtener información del programa para la miniatura
+                program = self.youtube.get_program(program_id)
+                
+                result = self.youtube.create_scheduled_live(
+                    title=title,
+                    description=description,
+                    start_time=actual_start_time,
+                    privacy_status=privacy_status,
+                    program_id=program_id,
+                    is_immediate=True,  # Inmediato porque estamos en el momento de ejecución
+                    made_for_kids=made_for_kids,
+                    thumbnail_url=thumbnail_url,
+                    delete_after=delete_after
+                )
+                
+                if result.get('success'):
+                    broadcast_id = result['broadcast_id']
+                    print(f"✅ Broadcast creado: {broadcast_id}")
+                    
+                    # Actualizar el broadcast_id en memoria y guardar en JSON
+                    if job_id in self.scheduled_jobs:
+                        self.scheduled_jobs[job_id]['broadcast_id'] = broadcast_id
+                        self._save_schedules()
+                else:
+                    print(f"❌ Error creando broadcast: {result.get('error')}")
+                    return None
+            
             print(f"📡 Usando broadcast: {broadcast_id}")
 
             # Configurar OBS
